@@ -1,12 +1,8 @@
 "use client"
 
-import { useState } from "react"
-
-import { useEffect } from "react"
-
 import type React from "react"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/lib/auth-context"
+
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Clock, Settings, Calculator, Calendar, FileText, Gamepad2, Palette, Code } from "lucide-react"
 
@@ -21,19 +17,6 @@ interface App {
 }
 
 export default function PhoneHomePage() {
-  const { user, isLoading } = useAuth()
-  const router = useRouter()
-
-  useEffect(() => {
-    if (!isLoading) {
-      if (user) {
-        router.push("/version-select")
-      } else {
-        router.push("/login")
-      }
-    }
-  }, [user, isLoading, router])
-
   const [currentTime, setCurrentTime] = useState("")
   const [currentDate, setCurrentDate] = useState("")
 
@@ -149,134 +132,124 @@ export default function PhoneHomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100 flex items-center justify-center">
-      <div className="bg-white rounded-3xl p-8 shadow-xl">
-        {isLoading ? (
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent mx-auto mb-4"></div>
-        ) : (
-          <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 relative overflow-hidden">
-            {/* Background Pattern */}
-            <div className="absolute inset-0 opacity-10">
-              <div className="absolute top-20 left-10 w-32 h-32 bg-orange-500 rounded-full blur-3xl"></div>
-              <div className="absolute top-40 right-20 w-24 h-24 bg-blue-500 rounded-full blur-2xl"></div>
-              <div className="absolute bottom-32 left-20 w-28 h-28 bg-purple-500 rounded-full blur-3xl"></div>
-              <div className="absolute bottom-20 right-10 w-20 h-20 bg-pink-500 rounded-full blur-2xl"></div>
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 relative overflow-hidden">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute top-20 left-10 w-32 h-32 bg-orange-500 rounded-full blur-3xl"></div>
+        <div className="absolute top-40 right-20 w-24 h-24 bg-blue-500 rounded-full blur-2xl"></div>
+        <div className="absolute bottom-32 left-20 w-28 h-28 bg-purple-500 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-20 right-10 w-20 h-20 bg-pink-500 rounded-full blur-2xl"></div>
+      </div>
 
-            {/* Phone Container */}
-            <div className="min-h-screen max-w-sm mx-auto bg-black relative">
-              {/* Status Bar */}
-              <div className="bg-black text-white px-6 py-2 flex justify-between items-center text-sm">
-                <div className="flex items-center space-x-1">
-                  <div className="w-1 h-1 bg-white rounded-full"></div>
-                  <div className="w-1 h-1 bg-white rounded-full"></div>
-                  <div className="w-1 h-1 bg-white rounded-full"></div>
-                  <span className="ml-2 text-xs">QRP OS</span>
+      {/* Phone Container */}
+      <div className="min-h-screen max-w-sm mx-auto bg-black relative">
+        {/* Status Bar */}
+        <div className="bg-black text-white px-6 py-2 flex justify-between items-center text-sm">
+          <div className="flex items-center space-x-1">
+            <div className="w-1 h-1 bg-white rounded-full"></div>
+            <div className="w-1 h-1 bg-white rounded-full"></div>
+            <div className="w-1 h-1 bg-white rounded-full"></div>
+            <span className="ml-2 text-xs">QRP OS</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <span className="text-xs">{currentTime}</span>
+            <div className="flex space-x-1">
+              <div className="w-1 h-3 bg-white rounded-sm"></div>
+              <div className="w-1 h-3 bg-white rounded-sm"></div>
+              <div className="w-1 h-3 bg-white rounded-sm"></div>
+              <div className="w-1 h-3 bg-gray-500 rounded-sm"></div>
+            </div>
+            <div className="w-6 h-3 border border-white rounded-sm">
+              <div className="w-4 h-1 bg-green-500 rounded-sm mt-0.5 ml-0.5"></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Screen Content */}
+        <div className="bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 min-h-screen relative">
+          {/* Time and Date */}
+          <div className="text-center pt-16 pb-8">
+            <div className="text-white text-6xl font-light mb-2">{currentTime}</div>
+            <div className="text-gray-300 text-lg capitalize">{currentDate}</div>
+          </div>
+
+          {/* Apps Grid */}
+          <div className="px-8 pb-8">
+            <div className="grid grid-cols-4 gap-6">
+              {apps.map((app) => (
+                <div key={app.id} className="flex flex-col items-center space-y-2">
+                  <div
+                    id={`app-${app.id}`}
+                    onClick={() => handleAppClick(app)}
+                    className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${app.color} flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-105 active:scale-95 relative shadow-lg`}
+                    style={{ transition: "transform 0.15s ease" }}
+                  >
+                    {app.icon}
+
+                    {/* Coming Soon Badge */}
+                    {app.comingSoon && (
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
+                        <Clock className="w-2 h-2 text-white" />
+                      </div>
+                    )}
+
+                    {/* Special QRP Badge */}
+                    {app.id === "qrp" && (
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                        <div className="w-2 h-2 bg-white rounded-full"></div>
+                      </div>
+                    )}
+                  </div>
+
+                  <span className="text-white text-xs text-center leading-tight max-w-16 truncate">{app.name}</span>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs">{currentTime}</span>
-                  <div className="flex space-x-1">
-                    <div className="w-1 h-3 bg-white rounded-sm"></div>
-                    <div className="w-1 h-3 bg-white rounded-sm"></div>
-                    <div className="w-1 h-3 bg-white rounded-sm"></div>
-                    <div className="w-1 h-3 bg-gray-500 rounded-sm"></div>
-                  </div>
-                  <div className="w-6 h-3 border border-white rounded-sm">
-                    <div className="w-4 h-1 bg-green-500 rounded-sm mt-0.5 ml-0.5"></div>
-                  </div>
+              ))}
+            </div>
+          </div>
+
+          {/* QRP Spotlight */}
+          <div className="px-8 mt-8">
+            <div className="bg-black/30 backdrop-blur-sm rounded-3xl p-6 border border-white/10">
+              <div className="flex items-center space-x-4 mb-4">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-blue-500 flex items-center justify-center">
+                  <Image src="/qrp-logo.png" alt="QRP" width={24} height={24} className="object-contain" />
+                </div>
+                <div>
+                  <h3 className="text-white font-semibold">QRP OS v2.0</h3>
+                  <p className="text-gray-400 text-sm">Complete App Suite</p>
                 </div>
               </div>
 
-              {/* Screen Content */}
-              <div className="bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 min-h-screen relative">
-                {/* Time and Date */}
-                <div className="text-center pt-16 pb-8">
-                  <div className="text-white text-6xl font-light mb-2">{currentTime}</div>
-                  <div className="text-gray-300 text-lg capitalize">{currentDate}</div>
+              <p className="text-gray-300 text-sm mb-4">
+                Een complete suite van apps met AI-ondersteuning. Van rekenmachine tot code editor - alles wat je nodig
+                hebt!
+              </p>
+
+              <div className="flex flex-wrap gap-2">
+                <div className="px-3 py-1 bg-orange-500/20 rounded-full">
+                  <span className="text-orange-400 text-xs">🚀 8 Apps</span>
                 </div>
-
-                {/* Apps Grid */}
-                <div className="px-8 pb-8">
-                  <div className="grid grid-cols-4 gap-6">
-                    {apps.map((app) => (
-                      <div key={app.id} className="flex flex-col items-center space-y-2">
-                        <div
-                          id={`app-${app.id}`}
-                          onClick={() => handleAppClick(app)}
-                          className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${app.color} flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-105 active:scale-95 relative shadow-lg`}
-                          style={{ transition: "transform 0.15s ease" }}
-                        >
-                          {app.icon}
-
-                          {/* Coming Soon Badge */}
-                          {app.comingSoon && (
-                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
-                              <Clock className="w-2 h-2 text-white" />
-                            </div>
-                          )}
-
-                          {/* Special QRP Badge */}
-                          {app.id === "qrp" && (
-                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                              <div className="w-2 h-2 bg-white rounded-full"></div>
-                            </div>
-                          )}
-                        </div>
-
-                        <span className="text-white text-xs text-center leading-tight max-w-16 truncate">
-                          {app.name}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+                <div className="px-3 py-1 bg-blue-500/20 rounded-full">
+                  <span className="text-blue-400 text-xs">🤖 AI Powered</span>
                 </div>
-
-                {/* QRP Spotlight */}
-                <div className="px-8 mt-8">
-                  <div className="bg-black/30 backdrop-blur-sm rounded-3xl p-6 border border-white/10">
-                    <div className="flex items-center space-x-4 mb-4">
-                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-blue-500 flex items-center justify-center">
-                        <Image src="/qrp-logo.png" alt="QRP" width={24} height={24} className="object-contain" />
-                      </div>
-                      <div>
-                        <h3 className="text-white font-semibold">QRP OS v2.0</h3>
-                        <p className="text-gray-400 text-sm">Complete App Suite</p>
-                      </div>
-                    </div>
-
-                    <p className="text-gray-300 text-sm mb-4">
-                      Een complete suite van apps met AI-ondersteuning. Van rekenmachine tot code editor - alles wat je
-                      nodig hebt!
-                    </p>
-
-                    <div className="flex flex-wrap gap-2">
-                      <div className="px-3 py-1 bg-orange-500/20 rounded-full">
-                        <span className="text-orange-400 text-xs">🚀 8 Apps</span>
-                      </div>
-                      <div className="px-3 py-1 bg-blue-500/20 rounded-full">
-                        <span className="text-blue-400 text-xs">🤖 AI Powered</span>
-                      </div>
-                      <div className="px-3 py-1 bg-purple-500/20 rounded-full">
-                        <span className="text-purple-400 text-xs">🇳🇱 Nederlands</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Bottom Dock */}
-                <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
-                  <div className="bg-black/50 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20">
-                    <div className="flex space-x-4">
-                      <div className="w-3 h-3 bg-white rounded-full"></div>
-                      <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
-                      <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
-                    </div>
-                  </div>
+                <div className="px-3 py-1 bg-purple-500/20 rounded-full">
+                  <span className="text-purple-400 text-xs">🇳🇱 Nederlands</span>
                 </div>
               </div>
             </div>
           </div>
-        )}
+
+          {/* Bottom Dock */}
+          <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
+            <div className="bg-black/50 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20">
+              <div className="flex space-x-4">
+                <div className="w-3 h-3 bg-white rounded-full"></div>
+                <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
+                <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )

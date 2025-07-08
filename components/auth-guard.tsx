@@ -6,22 +6,27 @@ import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 
-export function AuthGuard({ children }: { children: React.ReactNode }) {
+interface AuthGuardProps {
+  children: React.ReactNode
+  redirectTo?: string
+}
+
+export function AuthGuard({ children, redirectTo = "/login" }: AuthGuardProps) {
   const { user, isLoading } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
     if (!isLoading && !user) {
-      router.push("/login")
+      router.push(redirectTo)
     }
-  }, [user, isLoading, router])
+  }, [user, isLoading, router, redirectTo])
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100 flex items-center justify-center">
-        <div className="bg-white rounded-3xl p-8 shadow-xl">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent mx-auto mb-4"></div>
-          <p className="text-purple-700 font-medium">Laden...</p>
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <div className="text-white">Laden...</div>
         </div>
       </div>
     )
