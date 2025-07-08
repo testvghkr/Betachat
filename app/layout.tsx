@@ -7,10 +7,10 @@ import { AuthProvider } from "@/lib/auth-context"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "QRP v2.0 - AI App Suite",
-  description: "Complete AI-powered app suite met Nederlandse ondersteuning",
+  title: "AI Chat - Material 3 Expressive",
+  description: "De toekomst van AI conversaties met Material 3 Expressive design",
   manifest: "/manifest.json",
-  themeColor: "#f97316",
+  themeColor: "#8b5cf6",
   viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
     generator: 'v0.dev'
 }

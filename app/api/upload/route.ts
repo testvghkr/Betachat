@@ -1,67 +1,58 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { writeFile, mkdir } from "fs/promises"
 import { join } from "path"
-import { existsSync } from "fs"
+import { cookies } from "next/headers"
+import { prisma } from "@/lib/db"
 
 export async function POST(request: NextRequest) {
-  console.log("=== UPLOAD API CALLED ===")
-
   try {
-    const data = await request.formData()
-    const file: File | null = data.get("file") as unknown as File
+    const cookieStore = await cookies()
+    const userId = cookieStore.get("auth-token")?.value
+
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const formData = await request.formData()
+    const file = formData.get("file") as File
+    const chatId = formData.get("chatId") as string
 
     if (!file) {
-      console.log("No file received")
-      return NextResponse.json({ error: "Geen bestand ontvangen" }, { status: 400 })
+      return NextResponse.json({ error: "No file provided" }, { status: 400 })
     }
 
-    console.log("File received:", file.name, file.type, file.size)
-
-    // Check file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      console.log("File too large:", file.size)
-      return NextResponse.json({ error: "Bestand is te groot (max 10MB)" }, { status: 400 })
+    // Create upload directory if it doesn't exist
+    const uploadDir = join(process.cwd(), "public", "uploads")
+    try {
+      await mkdir(uploadDir, { recursive: true })
+    } catch (error) {
+      // Directory might already exist
     }
 
+    // Generate unique filename
+    const timestamp = Date.now()
+    const filename = `${timestamp}-${file.name}`
+    const filepath = join(uploadDir, filename)
+
+    // Write file
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
+    await writeFile(filepath, buffer)
 
-    // Create safe filename
-    const timestamp = Date.now()
-    const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_")
-    const filename = `${timestamp}_${safeName}`
-
-    // Ensure uploads directory exists
-    const uploadsDir = join(process.cwd(), "public", "uploads")
-
-    if (!existsSync(uploadsDir)) {
-      console.log("Creating uploads directory...")
-      await mkdir(uploadsDir, { recursive: true })
-    }
-
-    const filePath = join(uploadsDir, filename)
-    console.log("Writing file to:", filePath)
-
-    await writeFile(filePath, buffer)
-
-    const publicUrl = `/uploads/${filename}`
-    console.log("File saved successfully, URL:", publicUrl)
+    // Save file info to database
+    const fileRecord = await prisma.$queryRaw`
+      INSERT INTO chat_files (user_id, chat_id, filename, file_path, file_type, file_size)
+      VALUES (${userId}, ${chatId}, ${file.name}, ${`/uploads/${filename}`}, ${file.type}, ${file.size})
+      RETURNING id, filename, file_path, file_type, file_size
+    `
 
     return NextResponse.json({
       success: true,
-      url: publicUrl,
-      filename: file.name,
-      size: file.size,
-      type: file.type,
+      file: Array.isArray(fileRecord) ? fileRecord[0] : fileRecord,
+      url: `/uploads/${filename}`,
     })
   } catch (error) {
-    console.error("Upload error:", error)
-    return NextResponse.json(
-      {
-        error: "Upload mislukt",
-        details: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 },
-    )
+    console.error("File upload error:", error)
+    return NextResponse.json({ error: "Upload failed" }, { status: 500 })
   }
 }
