@@ -189,10 +189,14 @@ export default function AppInstallerenPage() {
 
         {/* Installation Instructions */}
         <Tabs defaultValue={deviceType} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-gray-800">
+          <TabsList className="grid w-full grid-cols-4 bg-gray-800">
             <TabsTrigger value="desktop" className="data-[state=active]:bg-gray-700">
               <Monitor className="w-4 h-4 mr-2" />
               Desktop
+            </TabsTrigger>
+            <TabsTrigger value="linux" className="data-[state=active]:bg-gray-700">
+              <Monitor className="w-4 h-4 mr-2" />
+              Ubuntu
             </TabsTrigger>
             <TabsTrigger value="mobile" className="data-[state=active]:bg-gray-700">
               <Smartphone className="w-4 h-4 mr-2" />
@@ -277,6 +281,49 @@ export default function AppInstallerenPage() {
                     <div>
                       <p className="text-white font-medium">Selecteer "Installeren"</p>
                       <p className="text-gray-400 text-sm">Bevestig de installatie in het popup venster</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Ubuntu/Linux Instructions */}
+          <TabsContent value="linux" className="space-y-4">
+            <Card className="bg-gray-800 border-gray-700">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center">
+                  <Chrome className="w-5 h-5 mr-2" />
+                  Installeren op Ubuntu/Linux
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-start space-x-3">
+                    <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                      1
+                    </div>
+                    <div>
+                      <p className="text-white font-medium">Open in Chrome of Firefox</p>
+                      <p className="text-gray-400 text-sm">Zorg dat je de website in een van deze browsers opent.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                      2
+                    </div>
+                    <div>
+                      <p className="text-white font-medium">Zoek het installatie-icoon</p>
+                      <p className="text-gray-400 text-sm">In de adresbalk van je browser zie je een icoon om de app te installeren.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                      3
+                    </div>
+                    <div>
+                      <p className="text-white font-medium">Klik op "Installeren"</p>
+                      <p className="text-gray-400 text-sm">De app wordt nu aan je systeem toegevoegd en is beschikbaar in je applicatiemenu.</p>
                     </div>
                   </div>
                 </div>
