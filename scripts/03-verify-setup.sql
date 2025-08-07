@@ -6,7 +6,7 @@ SELECT
     table_type
 FROM information_schema.tables 
 WHERE table_schema = 'public' 
-    AND table_name IN ('User', 'Chat', 'Message')
+    AND table_name IN ('User', 'Chat', 'Message', 'VisitorCount')
 ORDER BY table_name;
 
 -- Check table structures
@@ -17,7 +17,7 @@ SELECT
     is_nullable
 FROM information_schema.columns 
 WHERE table_schema = 'public' 
-    AND table_name IN ('User', 'Chat', 'Message')
+    AND table_name IN ('User', 'Chat', 'Message', 'VisitorCount')
 ORDER BY table_name, ordinal_position;
 
 -- Check foreign key constraints
@@ -37,7 +37,7 @@ JOIN information_schema.constraint_column_usage AS ccu
     AND ccu.table_schema = tc.table_schema
 WHERE tc.constraint_type = 'FOREIGN KEY' 
     AND tc.table_schema = 'public'
-    AND tc.table_name IN ('User', 'Chat', 'Message');
+    AND tc.table_name IN ('User', 'Chat', 'Message', 'VisitorCount');
 
 -- Check indexes
 SELECT 
@@ -47,7 +47,7 @@ SELECT
     indexdef
 FROM pg_indexes 
 WHERE schemaname = 'public' 
-    AND tablename IN ('User', 'Chat', 'Message')
+    AND tablename IN ('User', 'Chat', 'Message', 'VisitorCount')
 ORDER BY tablename, indexname;
 
 -- Show current data counts
@@ -58,7 +58,10 @@ SELECT
     'Chat' as table_name, COUNT(*) as record_count FROM "Chat"
 UNION ALL
 SELECT 
-    'Message' as table_name, COUNT(*) as record_count FROM "Message";
+    'Message' as table_name, COUNT(*) as record_count FROM "Message"
+UNION ALL
+SELECT 
+    'VisitorCount' as table_name, COUNT(*) as record_count FROM "VisitorCount";
 
 -- Test a simple join to verify relationships work
 SELECT 
@@ -71,6 +74,18 @@ LEFT JOIN "Chat" c ON u."id" = c."userId"
 LEFT JOIN "Message" m ON c."id" = m."chatId"
 GROUP BY u."id", u."name", u."email", c."id", c."title"
 ORDER BY u."name";
+
+-- Verify 'chats' table
+SELECT * FROM chats;
+
+-- Verify 'messages' table
+SELECT * FROM messages;
+
+-- Verify 'users' table (placeholder)
+SELECT * FROM users;
+
+-- Verify 'VisitorCount' table (placeholder)
+SELECT * FROM "VisitorCount";
 
 -- This script is now redundant as we don't have specific verification steps for this simplified version.
 -- Keeping it for historical context if needed.

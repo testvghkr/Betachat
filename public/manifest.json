@@ -1,11 +1,11 @@
 {
   "name": "QRP Chatbot",
   "short_name": "QRP Chat",
-  "description": "Je vriendelijke AI-assistent",
-  "start_url": "/",
+  "description": "Jouw vriendelijke AI-assistent",
+  "start_url": "/chat",
   "display": "standalone",
-  "background_color": "#6750a4",
-  "theme_color": "#6750a4",
+  "background_color": "#6750A4",
+  "theme_color": "#6750A4",
   "icons": [
     {
       "src": "/icon-192.png",

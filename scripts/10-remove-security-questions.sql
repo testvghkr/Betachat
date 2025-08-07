@@ -1,11 +1,18 @@
 -- Verwijder de beveiligingsvragen functionaliteit
 
--- Verwijder de SecurityQuestion tabel als deze bestaat
-DROP TABLE IF EXISTS "SecurityQuestion" CASCADE;
+-- Remove security_question and security_answer columns from User table if they exist
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'security_question') THEN
+        ALTER TABLE "User" DROP COLUMN security_question;
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'security_answer') THEN
+        ALTER TABLE "User" DROP COLUMN security_answer;
+    END IF;
+END $$;
 
--- Verwijder eventuele overgebleven kolommen uit de User tabel
-ALTER TABLE "User" DROP COLUMN IF EXISTS "securityQuestion";
-ALTER TABLE "User" DROP COLUMN IF EXISTS "securityAnswer";
+-- Verwijder de SecurityQuestion tabel als deze bestaat
+DROP TABLE IF EXISTS "SecurityQuestion";
 
 -- Verwijder eventuele indexen
 DROP INDEX IF EXISTS "User_securityQuestion_idx";
@@ -29,5 +36,5 @@ ORDER BY ordinal_position;
 
 SELECT '✅ Beveiligingsvragen succesvol verwijderd!' as status;
 
--- This script is now redundant as security questions are removed.
--- Keeping it for historical context if needed.
+-- This script is no longer directly used as authentication is removed.
+-- It's kept as a placeholder for historical context.

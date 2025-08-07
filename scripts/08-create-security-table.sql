@@ -1,25 +1,23 @@
 -- Maak een aparte tabel voor beveiligingsgegevens
 -- Dit zorgt voor betere beveiliging en scheiding van gegevens
 
--- Maak de SecurityQuestion tabel
+-- Create SecurityQuestion table if it doesn't exist
 CREATE TABLE IF NOT EXISTS "SecurityQuestion" (
-    "id" TEXT NOT NULL PRIMARY KEY DEFAULT gen_random_uuid()::text,
-    "userId" TEXT NOT NULL,
-    "question" TEXT NOT NULL,
-    "answerHash" TEXT NOT NULL,
-    "salt" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "isActive" BOOLEAN NOT NULL DEFAULT TRUE,
-    CONSTRAINT "SecurityQuestion_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE
+    id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT NOT NULL,
+    question TEXT NOT NULL,
+    answer TEXT NOT NULL,
+    created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(3) NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE
 );
 
 -- Maak unieke index voor userId (één actieve beveiligingsvraag per gebruiker)
-CREATE UNIQUE INDEX IF NOT EXISTS "SecurityQuestion_userId_active_idx" ON "SecurityQuestion"("userId") WHERE "isActive" = TRUE;
+CREATE UNIQUE INDEX IF NOT EXISTS "SecurityQuestion_userId_active_idx" ON "SecurityQuestion"("user_id");
 
 -- Maak index voor betere performance
-CREATE INDEX IF NOT EXISTS "SecurityQuestion_userId_idx" ON "SecurityQuestion"("userId");
-CREATE INDEX IF NOT EXISTS "SecurityQuestion_createdAt_idx" ON "SecurityQuestion"("createdAt");
+CREATE INDEX IF NOT EXISTS "SecurityQuestion_userId_idx" ON "SecurityQuestion"("user_id");
+CREATE INDEX IF NOT EXISTS "SecurityQuestion_createdAt_idx" ON "SecurityQuestion"("created_at");
 
 -- Verwijder de oude kolommen uit de User tabel (als ze bestaan)
 DO $$
@@ -66,5 +64,5 @@ FROM information_schema.columns
 WHERE table_name = 'User' AND table_schema = 'public'
 ORDER BY ordinal_position;
 
--- This script is now redundant as security questions are removed.
--- Keeping it for historical context if needed.
+-- This script is no longer directly used as authentication is removed.
+-- It's kept as a placeholder for historical context.

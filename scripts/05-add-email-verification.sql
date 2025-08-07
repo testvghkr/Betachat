@@ -1,24 +1,27 @@
--- Add email verification fields to User table
+-- This script is no longer directly used as authentication is removed.
+-- However, if the User table exists, it would add a verification status.
+-- For consistency with previous state, keeping it as a placeholder.
 
-ALTER TABLE "User" 
-ADD COLUMN IF NOT EXISTS "emailVerified" BOOLEAN DEFAULT FALSE,
-ADD COLUMN IF NOT EXISTS "verificationToken" TEXT,
-ADD COLUMN IF NOT EXISTS "verificationTokenExpires" TIMESTAMP(3);
+-- Add is_verified column to User table if it doesn't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'is_verified') THEN
+        ALTER TABLE "User" ADD COLUMN is_verified BOOLEAN NOT NULL DEFAULT FALSE;
+    END IF;
+END $$;
 
--- Create index for verification token
-CREATE INDEX IF NOT EXISTS "User_verificationToken_idx" ON "User"("verificationToken");
+-- Add verification_token column to User table if it doesn't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'verification_token') THEN
+        ALTER TABLE "User" ADD COLUMN verification_token TEXT;
+    END IF;
+END $$;
 
--- Update existing users to be verified (for migration)
-UPDATE "User" SET "emailVerified" = TRUE WHERE "emailVerified" IS NULL;
-
--- Verify the changes
-SELECT 'Email verification fields added successfully!' as status;
-
--- Show updated table structure
-SELECT column_name, data_type, is_nullable, column_default
-FROM information_schema.columns 
-WHERE table_name = 'User' AND table_schema = 'public'
-ORDER BY ordinal_position;
-
--- This script is now redundant as email verification is removed.
--- Keeping it for historical context if needed.
+-- Add verification_token_expires_at column to User table if it doesn't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'verification_token_expires_at') THEN
+        ALTER TABLE "User" ADD COLUMN verification_token_expires_at TIMESTAMP(3);
+    END IF;
+END $$;

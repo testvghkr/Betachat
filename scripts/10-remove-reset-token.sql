@@ -1,11 +1,18 @@
 -- Verwijder de reset token functionaliteit
 
--- This script is now redundant as reset token functionality is removed.
--- Keeping it for historical context if needed.
+-- This script is no longer directly used as authentication is removed.
+-- It's kept as a placeholder for historical context.
 
--- Verwijder de reset token kolommen uit de User tabel
-ALTER TABLE "User" DROP COLUMN IF EXISTS "resetToken";
-ALTER TABLE "User" DROP COLUMN IF EXISTS "resetTokenExpires";
+-- Remove reset_token and reset_token_expires_at columns from User table if they exist
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'reset_token') THEN
+        ALTER TABLE "User" DROP COLUMN reset_token;
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'reset_token_expires_at') THEN
+        ALTER TABLE "User" DROP COLUMN reset_token_expires_at;
+    END IF;
+END $$;
 
 -- Verwijder eventuele indexen
 DROP INDEX IF EXISTS "User_resetToken_idx";

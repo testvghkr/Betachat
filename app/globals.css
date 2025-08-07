@@ -13,10 +13,10 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 222.2 47.4% 11.2%; /* QRP Purple: #6750a4 */
-    --primary-foreground: 210 20% 98%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
 
-    --secondary: 210 40% 96.1%; /* QRP Orange: #f97316 */
+    --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
 
     --muted: 210 40% 96.1%;
@@ -26,7 +26,7 @@
     --accent-foreground: 222.2 47.4% 11.2%;
 
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 20% 98%;
+    --destructive-foreground: 210 40% 98%;
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
@@ -34,121 +34,131 @@
 
     --radius: 0.5rem;
 
-    /* Material 3 Color Palette (QRP Theme) */
-    --md-sys-color-primary: 100 100% 100%; /* White for text on primary */
-    --md-sys-color-on-primary: 270 50% 30%; /* Darker purple for text on primary */
-    --md-sys-color-primary-container: 270 50% 60%; /* Lighter purple */
-    --md-sys-color-on-primary-container: 270 50% 10%; /* Even darker purple */
-    --md-sys-color-secondary: 30 100% 50%; /* Orange */
-    --md-sys-color-on-secondary: 0 0% 100%; /* White for text on secondary */
-    --md-sys-color-secondary-container: 30 100% 70%; /* Lighter orange */
-    --md-sys-color-on-secondary-container: 30 100% 20%; /* Darker orange */
-    --md-sys-color-tertiary: 200 50% 50%; /* Example tertiary color */
-    --md-sys-color-on-tertiary: 0 0% 100%;
-    --md-sys-color-tertiary-container: 200 50% 80%;
-    --md-sys-color-on-tertiary-container: 200 50% 20%;
-    --md-sys-color-error: 0 80% 50%;
-    --md-sys-color-on-error: 0 0% 100%;
-    --md-sys-color-error-container: 0 80% 90%;
-    --md-sys-color-on-error-container: 0 80% 20%;
-    --md-sys-color-outline: 210 10% 70%;
-    --md-sys-color-background: 0 0% 100%;
-    --md-sys-color-on-background: 210 10% 10%;
-    --md-sys-color-surface: 0 0% 100%;
-    --md-sys-color-on-surface: 210 10% 10%;
-    --md-sys-color-surface-variant: 210 10% 90%;
-    --md-sys-color-on-surface-variant: 210 10% 30%;
-    --md-sys-color-inverse-surface: 210 10% 20%;
-    --md-sys-color-inverse-on-surface: 0 0% 100%;
-    --md-sys-color-inverse-primary: 270 50% 70%;
-    --md-sys-color-shadow: 0 0% 0%;
-    --md-sys-color-surface-tint: 270 50% 50%;
-    --md-sys-color-outline-variant: 210 10% 80%;
-    --md-sys-color-scrim: 0 0% 0%;
-    --md-sys-color-surface-container-lowest: 0 0% 100%;
-    --md-sys-color-surface-container-low: 210 5% 98%;
-    --md-sys-color-surface-container: 210 5% 96%;
-    --md-sys-color-surface-container-high: 210 5% 94%;
-    --md-sys-color-surface-container-highest: 210 5% 92%;
+    /* Material 3 Light Theme Colors */
+    --md-sys-color-primary: #6750A4;
+    --md-sys-color-on-primary: #FFFFFF;
+    --md-sys-color-primary-container: #EADDFF;
+    --md-sys-color-on-primary-container: #21005D;
+    --md-sys-color-secondary: #625B71;
+    --md-sys-color-on-secondary: #FFFFFF;
+    --md-sys-color-secondary-container: #E8DEF8;
+    --md-sys-color-on-secondary-container: #1D192B;
+    --md-sys-color-tertiary: #7D5260;
+    --md-sys-color-on-tertiary: #FFFFFF;
+    --md-sys-color-tertiary-container: #FFD8E4;
+    --md-sys-color-on-tertiary-container: #31111D;
+    --md-sys-color-error: #BA1A1A;
+    --md-sys-color-on-error: #FFFFFF;
+    --md-sys-color-error-container: #FFDAD6;
+    --md-sys-color-on-error-container: #410002;
+    --md-sys-color-background: #FFFBFF;
+    --md-sys-color-on-background: #1C1B1F;
+    --md-sys-color-surface: #FFFBFF;
+    --md-sys-color-on-surface: #1C1B1F;
+    --md-sys-color-surface-variant: #E7E0EC;
+    --md-sys-color-on-surface-variant: #49454F;
+    --md-sys-color-outline: #79747E;
+    --md-sys-color-inverse-on-surface: #F4EFF4;
+    --md-sys-color-inverse-surface: #313033;
+    --md-sys-color-inverse-primary: #D0BCFF;
+    --md-sys-color-shadow: #000000;
+    --md-sys-color-surface-tint: #6750A4;
+    --md-sys-color-outline-variant: #CAC4D0;
+    --md-sys-color-scrim: #000000;
+    --md-sys-color-surface-container-lowest: #FFFFFF;
+    --md-sys-color-surface-container-low: #F7F2FA;
+    --md-sys-color-surface-container: #F3EDF7;
+    --md-sys-color-surface-container-high: #ECE6F0;
+    --md-sys-color-surface-container-highest: #E6E0E9;
   }
 
   .dark {
     --background: 222.2 84% 4.9%;
-    --foreground: 210 20% 98%;
+    --foreground: 210 40% 98%;
 
     --card: 222.2 84% 4.9%;
-    --card-foreground: 210 20% 98%;
+    --card-foreground: 210 40% 98%;
 
     --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 20% 98%;
+    --popover-foreground: 210 40% 98%;
 
-    --primary: 210 20% 98%;
+    --primary: 210 40% 98%;
     --primary-foreground: 222.2 47.4% 11.2%;
 
     --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 20% 98%;
+    --secondary-foreground: 210 40% 98%;
 
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
 
     --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 20% 98%;
+    --accent-foreground: 210 40% 98%;
 
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 20% 98%;
+    --destructive-foreground: 210 40% 98%;
 
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 210 20% 98%;
+    --ring: 212.7 26.8% 83.9%;
 
-    /* Material 3 Color Palette (QRP Theme) - Dark Mode */
-    --md-sys-color-primary: 270 50% 70%; /* Lighter purple for primary */
-    --md-sys-color-on-primary: 270 50% 10%; /* Darker text on primary */
-    --md-sys-color-primary-container: 270 50% 20%; /* Darker purple */
-    --md-sys-color-on-primary-container: 270 50% 90%; /* Lighter text on primary container */
-    --md-sys-color-secondary: 30 100% 70%; /* Lighter orange */
-    --md-sys-color-on-secondary: 30 100% 10%; /* Darker text on secondary */
-    --md-sys-color-secondary-container: 30 100% 20%; /* Darker orange */
-    --md-sys-color-on-secondary-container: 30 100% 90%; /* Lighter text on secondary container */
-    --md-sys-color-tertiary: 200 50% 70%;
-    --md-sys-color-on-tertiary: 200 50% 10%;
-    --md-sys-color-tertiary-container: 200 50% 20%;
-    --md-sys-color-on-tertiary-container: 200 50% 90%;
-    --md-sys-color-error: 0 80% 70%;
-    --md-sys-color-on-error: 0 80% 10%;
-    --md-sys-color-error-container: 0 80% 20%;
-    --md-sys-color-on-error-container: 0 80% 90%;
-    --md-sys-color-outline: 210 10% 40%;
-    --md-sys-color-background: 210 10% 5%;
-    --md-sys-color-on-background: 210 10% 95%;
-    --md-sys-color-surface: 210 10% 5%;
-    --md-sys-color-on-surface: 210 10% 95%;
-    --md-sys-color-surface-variant: 210 10% 20%;
-    --md-sys-color-on-surface-variant: 210 10% 70%;
-    --md-sys-color-inverse-surface: 210 10% 90%;
-    --md-sys-color-inverse-on-surface: 210 10% 10%;
-    --md-sys-color-inverse-primary: 270 50% 30%;
-    --md-sys-color-shadow: 0 0% 0%;
-    --md-sys-color-surface-tint: 270 50% 50%;
-    --md-sys-color-outline-variant: 210 10% 30%;
-    --md-sys-color-scrim: 0 0% 0%;
-    --md-sys-color-surface-container-lowest: 210 10% 2%;
-    --md-sys-color-surface-container-low: 210 10% 7%;
-    --md-sys-color-surface-container: 210 10% 10%;
-    --md-sys-color-surface-container-high: 210 10% 15%;
-    --md-sys-color-surface-container-highest: 210 10% 20%;
+    /* Material 3 Dark Theme Colors */
+    --md-sys-color-primary: #D0BCFF;
+    --md-sys-color-on-primary: #381E72;
+    --md-sys-color-primary-container: #4F378B;
+    --md-sys-color-on-primary-container: #EADDFF;
+    --md-sys-color-secondary: #CCC2DC;
+    --md-sys-color-on-secondary: #332D41;
+    --md-sys-color-secondary-container: #4A4458;
+    --md-sys-color-on-secondary-container: #E8DEF8;
+    --md-sys-color-tertiary: #EFB8C8;
+    --md-sys-color-on-tertiary: #492532;
+    --md-sys-color-tertiary-container: #633B48;
+    --md-sys-color-on-tertiary-container: #FFD8E4;
+    --md-sys-color-error: #FFB4AB;
+    --md-sys-color-on-error: #690005;
+    --md-sys-color-error-container: #93000A;
+    --md-sys-color-on-error-container: #FFDAD6;
+    --md-sys-color-background: #1C1B1F;
+    --md-sys-color-on-background: #E6E1E5;
+    --md-sys-color-surface: #1C1B1F;
+    --md-sys-color-on-surface: #E6E1E5;
+    --md-sys-color-surface-variant: #49454F;
+    --md-sys-color-on-surface-variant: #CAC4D0;
+    --md-sys-color-outline: #938F99;
+    --md-sys-color-inverse-on-surface: #1C1B1F;
+    --md-sys-color-inverse-surface: #E6E1E5;
+    --md-sys-color-inverse-primary: #6750A4;
+    --md-sys-color-shadow: #000000;
+    --md-sys-color-surface-tint: #D0BCFF;
+    --md-sys-color-outline-variant: #49454F;
+    --md-sys-color-scrim: #000000;
+    --md-sys-color-surface-container-lowest: #121013;
+    --md-sys-color-surface-container-low: #201D23;
+    --md-sys-color-surface-container: #242229;
+    --md-sys-color-surface-container-high: #2F2D33;
+    --md-sys-color-surface-container-highest: #3A383E;
   }
 }
 
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Glassmorphism effect */
 .glass-surface {
-  background-color: rgba(255, 255, 255, 0.05); /* Light glass effect */
+  background-color: rgba(255, 255, 255, 0.1); /* Light transparent white */
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2); /* Light border */
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .dark .glass-surface {
-  background-color: rgba(0, 0, 0, 0.2); /* Dark glass effect */
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background-color: rgba(0, 0, 0, 0.2); /* Dark transparent black */
+  border: 1px solid rgba(255, 255, 255, 0.1); /* Lighter border for dark mode */
 }

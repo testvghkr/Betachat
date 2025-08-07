@@ -1,39 +1,42 @@
--- Create the 'chats' table
-CREATE TABLE IF NOT EXISTS chats (
-    id VARCHAR(255) PRIMARY KEY,
-    user_id VARCHAR(255) NOT NULL, -- Placeholder user ID
-    title VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+-- This script is a consolidated version for initial database setup.
+-- It includes all necessary table creations and initial seeding.
+
+-- Create Chat table
+CREATE TABLE IF NOT EXISTS "Chat" (
+    id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(3) NOT NULL
 );
 
--- Create the 'messages' table
-CREATE TABLE IF NOT EXISTS messages (
-    id VARCHAR(255) PRIMARY KEY,
-    chat_id VARCHAR(255) NOT NULL,
-    role VARCHAR(50) NOT NULL, -- 'user' or 'assistant'
+-- Create Message table
+CREATE TABLE IF NOT EXISTS "Message" (
+    id TEXT PRIMARY KEY NOT NULL,
+    chat_id TEXT NOT NULL,
+    role TEXT NOT NULL,
     content TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE
+    created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (chat_id) REFERENCES "Chat"(id) ON DELETE CASCADE
 );
 
--- Create a placeholder 'users' table if it's expected by Prisma, but it won't be used for authentication
-CREATE TABLE IF NOT EXISTS users (
-    id VARCHAR(255) PRIMARY KEY,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Create a placeholder 'VisitorCount' table if expected by Prisma
+-- Create VisitorCount table
 CREATE TABLE IF NOT EXISTS "VisitorCount" (
-    id SERIAL PRIMARY KEY,
+    id INTEGER PRIMARY KEY NOT NULL,
     count INTEGER NOT NULL DEFAULT 0
 );
 
--- Insert initial visitor count if table is empty
-INSERT INTO "VisitorCount" (count)
-SELECT 0
-WHERE NOT EXISTS (SELECT 1 FROM "VisitorCount");
+-- Create User table (placeholder for removed auth)
+CREATE TABLE IF NOT EXISTS "User" (
+    id TEXT PRIMARY KEY NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    password TEXT NOT NULL,
+    created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(3) NOT NULL
+);
+
+-- Seed initial visitor count if not exists
+INSERT INTO "VisitorCount" (id, count)
+SELECT 1, 0
+WHERE NOT EXISTS (SELECT 1 FROM "VisitorCount" WHERE id = 1);

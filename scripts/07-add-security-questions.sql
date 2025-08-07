@@ -1,20 +1,13 @@
--- Add security questions to User table for secure password reset
+-- This script is no longer directly used as authentication is removed.
+-- It's kept as a placeholder for historical context.
 
-ALTER TABLE "User" 
-ADD COLUMN IF NOT EXISTS "securityQuestion" TEXT,
-ADD COLUMN IF NOT EXISTS "securityAnswer" TEXT;
-
--- Create index for better performance
-CREATE INDEX IF NOT EXISTS "User_securityQuestion_idx" ON "User"("securityQuestion");
-
--- This script is now redundant as security questions are removed.
--- Keeping it for historical context if needed.
-
--- Verify the changes
-SELECT 'Security questions fields added successfully!' as status;
-
--- Show updated table structure
-SELECT column_name, data_type, is_nullable, column_default
-FROM information_schema.columns 
-WHERE table_name = 'User' AND table_schema = 'public'
-ORDER BY ordinal_position;
+-- Add security_question and security_answer columns to User table if they don't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'security_question') THEN
+        ALTER TABLE "User" ADD COLUMN security_question TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'security_answer') THEN
+        ALTER TABLE "User" ADD COLUMN security_answer TEXT;
+    END IF;
+END $$;

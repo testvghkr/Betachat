@@ -1,19 +1,10 @@
--- Add visitor count table for launch celebration
-
-CREATE TABLE IF NOT EXISTS visitor_count (
-    id INTEGER PRIMARY KEY DEFAULT 1,
-    count INTEGER NOT NULL DEFAULT 0,
-    updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+-- Add VisitorCount table if it doesn't exist
+CREATE TABLE IF NOT EXISTS "VisitorCount" (
+    id INTEGER PRIMARY KEY NOT NULL,
+    count INTEGER NOT NULL DEFAULT 0
 );
 
--- Insert initial record
-INSERT INTO visitor_count (id, count, updated_at) 
-VALUES (1, 0, CURRENT_TIMESTAMP) 
-ON CONFLICT (id) DO NOTHING;
-
--- Verify the table was created
-SELECT 'Visitor count table created successfully!' as status;
-SELECT * FROM visitor_count;
-
--- This script is now redundant as setup-database.sql handles table creation.
--- Keeping it for historical context if needed.
+-- Seed initial visitor count if not exists
+INSERT INTO "VisitorCount" (id, count)
+SELECT 1, 0
+WHERE NOT EXISTS (SELECT 1 FROM "VisitorCount" WHERE id = 1);

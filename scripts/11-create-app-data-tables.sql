@@ -1,44 +1,45 @@
 -- Create app data tables for Material 3 AI Chat
 
 -- Calculator history
-CREATE TABLE IF NOT EXISTS calculator_history (
-    id SERIAL PRIMARY KEY,
-    user_id VARCHAR(255) NOT NULL,
-    expression VARCHAR(500) NOT NULL,
-    result VARCHAR(100) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE IF NOT EXISTS "CalculatorHistory" (
+    id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT NOT NULL,
+    expression TEXT NOT NULL,
+    result TEXT NOT NULL,
+    created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Notes with Material 3 styling
-CREATE TABLE IF NOT EXISTS notes (
-    id SERIAL PRIMARY KEY,
-    user_id VARCHAR(255) NOT NULL,
-    title VARCHAR(255) NOT NULL,
+CREATE TABLE IF NOT EXISTS "Note" (
+    id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT NOT NULL,
+    title TEXT NOT NULL,
     content TEXT,
-    color VARCHAR(50) DEFAULT 'purple',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(3) NOT NULL
 );
 
 -- Calendar events
-CREATE TABLE IF NOT EXISTS calendar_events (
-    id SERIAL PRIMARY KEY,
-    user_id VARCHAR(255) NOT NULL,
-    title VARCHAR(255) NOT NULL,
+CREATE TABLE IF NOT EXISTS "CalendarEvent" (
+    id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT NOT NULL,
+    title TEXT NOT NULL,
     description TEXT,
-    event_date DATE NOT NULL,
-    event_time TIME,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    start_time TIMESTAMP(3) NOT NULL,
+    end_time TIMESTAMP(3) NOT NULL,
+    created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(3) NOT NULL
 );
 
 -- Code snippets
-CREATE TABLE IF NOT EXISTS code_snippets (
-    id SERIAL PRIMARY KEY,
-    user_id VARCHAR(255) NOT NULL,
-    title VARCHAR(255) NOT NULL,
+CREATE TABLE IF NOT EXISTS "CodeSnippet" (
+    id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT NOT NULL,
+    title TEXT NOT NULL,
     code TEXT NOT NULL,
-    language VARCHAR(50) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    language TEXT,
+    created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(3) NOT NULL
 );
 
 -- Color palettes
@@ -51,21 +52,23 @@ CREATE TABLE IF NOT EXISTS color_palettes (
 );
 
 -- Game scores
-CREATE TABLE IF NOT EXISTS game_scores (
-    id SERIAL PRIMARY KEY,
-    user_id VARCHAR(255) NOT NULL,
-    game_name VARCHAR(100) NOT NULL,
+CREATE TABLE IF NOT EXISTS "GameScore" (
+    id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT NOT NULL,
+    game_name TEXT NOT NULL,
     score INTEGER NOT NULL,
-    game_data JSON,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- App settings with beta mode
-CREATE TABLE IF NOT EXISTS app_settings (
-    user_id VARCHAR(255) PRIMARY KEY,
-    settings JSON NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE IF NOT EXISTS "AppSetting" (
+    id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT NOT NULL,
+    setting_key TEXT NOT NULL,
+    setting_value TEXT,
+    created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(3) NOT NULL,
+    UNIQUE (user_id, setting_key)
 );
 
 -- File uploads for chat
@@ -90,14 +93,14 @@ CREATE TABLE IF NOT EXISTS beta_settings (
 );
 
 -- Create indexes for better performance
-CREATE INDEX IF NOT EXISTS idx_calculator_history_user_id ON calculator_history(user_id);
-CREATE INDEX IF NOT EXISTS idx_notes_user_id ON notes(user_id);
-CREATE INDEX IF NOT EXISTS idx_calendar_events_user_id ON calendar_events(user_id);
-CREATE INDEX IF NOT EXISTS idx_code_snippets_user_id ON code_snippets(user_id);
+CREATE INDEX IF NOT EXISTS idx_calculator_history_user_id ON "CalculatorHistory"(user_id);
+CREATE INDEX IF NOT EXISTS idx_notes_user_id ON "Note"(user_id);
+CREATE INDEX IF NOT EXISTS idx_calendar_events_user_id ON "CalendarEvent"(user_id);
+CREATE INDEX IF NOT EXISTS idx_code_snippets_user_id ON "CodeSnippet"(user_id);
 CREATE INDEX IF NOT EXISTS idx_color_palettes_user_id ON color_palettes(user_id);
-CREATE INDEX IF NOT EXISTS idx_game_scores_user_id ON game_scores(user_id);
+CREATE INDEX IF NOT EXISTS idx_game_scores_user_id ON "GameScore"(user_id);
 CREATE INDEX IF NOT EXISTS idx_chat_files_user_id ON chat_files(user_id);
 CREATE INDEX IF NOT EXISTS idx_chat_files_chat_id ON chat_files(chat_id);
 
--- This script is now redundant as app-specific data tables are removed.
--- Keeping it for historical context if needed.
+-- This script is no longer directly used as app-specific features are removed.
+-- It's kept as a placeholder for historical context.

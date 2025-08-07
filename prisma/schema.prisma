@@ -9,13 +9,13 @@ datasource db {
 
 model Chat {
   id         String    @id @default(cuid())
-  user_id    String    // Placeholder user ID, not linked to a User model
+  user_id    String
   title      String
-  created_at DateTime  @default(now()) @db.Timestamptz(6)
-  updated_at DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
   messages   Message[]
 
-  @@map("chats")
+  @@map("Chat")
 }
 
 model Message {
@@ -23,29 +23,27 @@ model Message {
   chat_id    String
   role       String
   content    String
-  created_at DateTime @default(now()) @db.Timestamptz(6)
+  created_at DateTime @default(now())
   chat       Chat     @relation(fields: [chat_id], references: [id], onDelete: Cascade)
 
-  @@map("messages")
+  @@map("Message")
 }
 
-// Placeholder User model to satisfy Prisma's expectation if it was previously used
-// This model is not actively used for authentication in the application logic.
-model User {
-  id         String    @id @default(cuid())
-  email      String    @unique
-  name       String
-  password   String
-  created_at DateTime  @default(now()) @db.Timestamptz(6)
-  updated_at DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
-
-  @@map("users")
-}
-
-// Placeholder VisitorCount model to satisfy Prisma's expectation if it was previously used
 model VisitorCount {
-  id    Int @id @default(autoincrement())
+  id    Int @id @default(1)
   count Int @default(0)
 
   @@map("VisitorCount")
+}
+
+// Placeholder User model (authentication removed)
+model User {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  name       String
+  password   String // Hashed password, even if not used for login
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("User")
 }

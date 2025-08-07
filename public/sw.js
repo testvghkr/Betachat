@@ -1,39 +1,69 @@
-// This is a placeholder service worker.
-// For a full PWA, you would implement caching strategies here.
-self.addEventListener('install', (event) => {
-  console.log('Service Worker installing.');
-  // event.waitUntil(
-  //   caches.open('v1').then((cache) => {
-  //     return cache.addAll([
-  //       '/',
-  //       '/index.html',
-  //       '/styles/main.css',
-  //       '/scripts/main.js'
-  //     ]);
-  //   })
-  // );
-});
+// Service Worker for QRP Chatbot PWA
+const CACHE_NAME = 'qrp-chatbot-cache-v1';
+const urlsToCache = [
+  '/',
+  '/chat',
+  '/manifest.json',
+  '/icon-192.png',
+  '/icon-512.png',
+  // Add other static assets you want to cache
+  // '/_next/static/css/...' // You might need to inspect your build output for these
+  // '/_next/static/chunks/...'
+];
 
-self.addEventListener('activate', (event) => {
-  console.log('Service Worker activating.');
-  // event.waitUntil(
-  //   caches.keys().then((cacheNames) => {
-  //     return Promise.all(
-  //       cacheNames.map((cacheName) => {
-  //         if (cacheName !== 'v1') {
-  //           return caches.delete(cacheName);
-  //         }
-  //       })
-  //     );
-  //   })
-  // );
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => {
+        console.log('Opened cache');
+        return cache.addAll(urlsToCache);
+      })
+  );
 });
 
 self.addEventListener('fetch', (event) => {
-  // console.log('Fetching:', event.request.url);
-  // event.respondWith(
-  //   caches.match(event.request).then((response) => {
-  //     return response || fetch(event.request);
-  //   })
-  // );
+  event.respondWith(
+    caches.match(event.request)
+      .then((response) => {
+        // Cache hit - return response
+        if (response) {
+          return response;
+        }
+        return fetch(event.request).then(
+          (response) => {
+            // Check if we received a valid response
+            if (!response || response.status !== 200 || response.type !== 'basic') {
+              return response;
+            }
+
+            // IMPORTANT: Clone the response. A response is a stream
+            // and can only be consumed once. We must clone it so that
+            // we can consume the stream twice.
+            const responseToCache = response.clone();
+
+            caches.open(CACHE_NAME)
+              .then((cache) => {
+                cache.put(event.request, responseToCache);
+              });
+
+            return response;
+          }
+        );
+      })
+  );
+});
+
+self.addEventListener('activate', (event) => {
+  const cacheWhitelist = [CACHE_NAME];
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheWhitelist.indexOf(cacheName) === -1) {
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
 });

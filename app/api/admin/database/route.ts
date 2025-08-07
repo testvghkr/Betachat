@@ -1,126 +1,49 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { prisma, sql } from "@/lib/db"
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
 
-export async function GET(request: NextRequest) {
-  console.log("=== DATABASE ADMIN API CALLED ===")
+export async function POST(request: Request) {
+  const { action } = await request.json();
 
-  try {
-    // Test connection
-    await prisma.$connect()
-    console.log("✅ Database connected")
+  if (action === 'clear_all_data') {
+    try {
+      // Delete all messages first to satisfy foreign key constraints
+      await prisma.message.deleteMany({});
+      // Then delete all chats
+      await prisma.chat.deleteMany({});
+      // Reset visitor count
+      await prisma.visitorCount.update({
+        where: { id: 1 },
+        data: { count: 0 },
+      });
+      // Delete all placeholder users
+      await prisma.user.deleteMany({});
 
-    // Example: Get table names
-    const tables = await sql`
-      SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema';
-    `;
-
-    // Get comprehensive stats
-    const [userCount, chatCount, messageCount] = await Promise.all([
-      prisma.user.count(),
-      prisma.chat.count(),
-      prisma.message.count(),
-    ])
-
-    // Get recent users (without passwords)
-    const recentUsers = await prisma.user.findMany({
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        createdAt: true,
-        _count: {
-          select: {
-            chats: true,
-          },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-    })
-
-    // Get recent chats
-    const recentChats = await prisma.chat.findMany({
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        createdAt: true,
-        user: {
-          select: {
-            name: true,
-            email: true,
-          },
-        },
-        _count: {
-          select: {
-            messages: true,
-          },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-    })
-
-    return NextResponse.json({
-      success: true,
-      message: "Database is working perfectly!",
-      stats: {
-        users: userCount,
-        chats: chatCount,
-        messages: messageCount,
-      },
-      recentUsers,
-      recentChats,
-      tables: tables.map(t => t.tablename),
-      database_url: process.env.DATABASE_URL ? "✅ Configured" : "❌ Missing",
-      timestamp: new Date().toISOString(),
-    })
-  } catch (error) {
-    console.error("❌ Database admin error:", error)
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Database error",
-        details: error instanceof Error ? error.message : "Unknown error",
-        database_url: process.env.DATABASE_URL ? "✅ Configured" : "❌ Missing",
-      },
-      { status: 500 },
-    )
-  }
-}
-
-export async function POST(request: NextRequest) {
-  console.log("=== DATABASE RESET API CALLED ===")
-
-  try {
-    const { action } = await request.json()
-
-    if (action === "reset") {
-      console.log("🔄 Resetting database...")
-
-      // Delete all data in correct order (due to foreign keys)
-      await prisma.message.deleteMany()
-      await prisma.chat.deleteMany()
-      await prisma.user.deleteMany()
-
-      console.log("✅ Database reset complete")
+      return NextResponse.json({ success: true, message: 'All data cleared successfully.' });
+    } catch (error: any) {
+      console.error('Error clearing all data:', error);
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+  } else if (action === 'get_status') {
+    try {
+      const chatCount = await prisma.chat.count();
+      const messageCount = await prisma.message.count();
+      const visitorCount = await prisma.visitorCount.findUnique({ where: { id: 1 } });
+      const userCount = await prisma.user.count();
 
       return NextResponse.json({
         success: true,
-        message: "Database reset successfully",
-      })
+        status: {
+          chatCount,
+          messageCount,
+          visitorCount: visitorCount?.count || 0,
+          userCount,
+        },
+      });
+    } catch (error: any) {
+      console.error('Error getting database status:', error);
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
-
-    return NextResponse.json({ error: "Invalid action" }, { status: 400 })
-  } catch (error) {
-    console.error("❌ Database reset error:", error)
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Reset failed",
-        details: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 },
-    )
+  } else {
+    return NextResponse.json({ success: false, message: 'Invalid action.' }, { status: 400 });
   }
 }

@@ -45,5 +45,9 @@ ORDER BY ordinal_position;
 -- Toon een bevestigingsbericht
 SELECT 'Security questions fix script uitgevoerd!' as status;
 
--- This script is now redundant as security questions are removed.
--- Keeping it for historical context if needed.
+-- This script is no longer directly used as authentication is removed.
+-- It's kept as a placeholder for historical context.
+
+-- Example of a potential fix (if security_question was added as NOT NULL without a default)
+-- ALTER TABLE "User" ALTER COLUMN security_question DROP NOT NULL;
+-- ALTER TABLE "User" ALTER COLUMN security_answer DROP NOT NULL;

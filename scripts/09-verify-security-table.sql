@@ -47,6 +47,12 @@ WHERE tc.constraint_type = 'FOREIGN KEY'
     AND tc.table_schema = 'public'
     AND tc.table_name = 'SecurityQuestion';
 
+-- Verify SecurityQuestion table exists
+SELECT 'SecurityQuestion' AS table_name FROM "SecurityQuestion" LIMIT 0;
+
+-- Verify counts (should be 0 if no seed data)
+SELECT COUNT(*) FROM "SecurityQuestion";
+
 -- Test de unieke constraint
 SELECT 'Testing unique constraint...' as test_info;
 
@@ -59,5 +65,5 @@ WHERE "isActive" = TRUE;
 
 SELECT '✅ SecurityQuestion tabel verificatie voltooid!' as status;
 
--- This script is now redundant as security questions are removed.
--- Keeping it for historical context if needed.
+-- This script is no longer directly used as authentication is removed.
+-- It's kept as a placeholder for historical context.

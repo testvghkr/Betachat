@@ -1,54 +1,34 @@
--- QRP Chatbot Database Setup
--- Using existing DATABASE_URL from environment
-
--- Drop existing tables if they exist (clean start)
-DROP TABLE IF EXISTS "Message" CASCADE;
-DROP TABLE IF EXISTS "Chat" CASCADE;
-DROP TABLE IF EXISTS "User" CASCADE;
-
--- Create Users table
-CREATE TABLE "User" (
-    "id" TEXT NOT NULL PRIMARY KEY DEFAULT gen_random_uuid()::text,
-    "email" TEXT NOT NULL UNIQUE,
-    "name" TEXT NOT NULL,
-    "password" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+-- Create Chat table
+CREATE TABLE IF NOT EXISTS "Chat" (
+    id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(3) NOT NULL
 );
 
--- Create Chats table
-CREATE TABLE "Chat" (
-    "id" TEXT NOT NULL PRIMARY KEY DEFAULT gen_random_uuid()::text,
-    "title" TEXT NOT NULL,
-    "description" TEXT,
-    "userId" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "Chat_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE
+-- Create Message table
+CREATE TABLE IF NOT EXISTS "Message" (
+    id TEXT PRIMARY KEY NOT NULL,
+    chat_id TEXT NOT NULL,
+    role TEXT NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (chat_id) REFERENCES "Chat"(id) ON DELETE CASCADE
 );
 
--- Create Messages table
-CREATE TABLE "Message" (
-    "id" TEXT NOT NULL PRIMARY KEY DEFAULT gen_random_uuid()::text,
-    "content" TEXT NOT NULL,
-    "role" TEXT NOT NULL,
-    "chatId" TEXT NOT NULL,
-    "fileUrl" TEXT,
-    "fileName" TEXT,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "Message_chatId_fkey" FOREIGN KEY ("chatId") REFERENCES "Chat"("id") ON DELETE CASCADE ON UPDATE CASCADE
+-- Create VisitorCount table
+CREATE TABLE IF NOT EXISTS "VisitorCount" (
+    id INTEGER PRIMARY KEY NOT NULL,
+    count INTEGER NOT NULL DEFAULT 0
 );
 
--- Create indexes for better performance
-CREATE INDEX "User_email_idx" ON "User"("email");
-CREATE INDEX "Chat_userId_idx" ON "Chat"("userId");
-CREATE INDEX "Chat_updatedAt_idx" ON "Chat"("updatedAt");
-CREATE INDEX "Message_chatId_idx" ON "Message"("chatId");
-CREATE INDEX "Message_createdAt_idx" ON "Message"("createdAt");
-
--- Verify tables were created
-SELECT 'Tables created successfully!' as status;
-
--- This script is now redundant as setup-database.sql handles table creation.
--- Keeping it for historical context if needed, but it won't be executed separately.
--- All table creation is now handled by scripts/setup-database.sql
+-- Create User table (placeholder for removed auth)
+CREATE TABLE IF NOT EXISTS "User" (
+    id TEXT PRIMARY KEY NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    password TEXT NOT NULL,
+    created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(3) NOT NULL
+);

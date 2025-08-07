@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
+  // swcMinify is deprecated in Next.js 15 and should be removed
   eslint: {
     ignoreDuringBuilds: true,
   },

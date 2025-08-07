@@ -1,8 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/db"
+import { PrismaClient } from '@prisma/client';
 import { generateResponse } from "@/lib/google-ai"
 import { cookies } from "next/headers"
 import { getMessagesByChatId, createMessage } from '@/lib/db';
+
+const prisma = new PrismaClient();
 
 function generateChatTitle(firstMessage: string): string {
   // Haal de eerste zin eruit (tot de eerste punt, vraagteken of uitroepteken)
@@ -66,6 +68,8 @@ export async function GET(request: NextRequest, { params }: { params: { chatId: 
   } catch (error) {
     console.error("Get messages error:", error)
     return NextResponse.json({ error: "Failed to fetch messages" }, { status: 500 })
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
@@ -77,7 +81,7 @@ export async function POST(request: NextRequest, { params }: { params: { chatId:
     const body = await request.json()
     console.log("Message body:", body)
 
-    const { content, fileUrl, fileName } = body
+    const { content, fileUrl, fileName, role } = body
 
     const cookieStore = await cookies()
     const userId = cookieStore.get("auth-token")?.value
@@ -87,6 +91,7 @@ export async function POST(request: NextRequest, { params }: { params: { chatId:
     console.log("Is Guest:", isGuest)
     console.log("File URL:", fileUrl)
     console.log("File Name:", fileName)
+    console.log("Role:", role)
 
     if (!userId) {
       console.log("Unauthorized: No auth token")
@@ -150,14 +155,14 @@ export async function POST(request: NextRequest, { params }: { params: { chatId:
     }
 
     console.log("Creating user message in database")
-    const userMessage = await createMessage(params.chatId, "user", content);
+    const userMessage = await createMessage(params.chatId, role, content);
 
     console.log("User message created:", userMessage.id)
 
     // Check if this is the first message in the chat (excluding welcome messages)
     const messageCount = await prisma.message.count({
       where: {
-        chatId: params.chatId,
+        chat_id: params.chatId,
         role: "user", // Only count user messages
       },
     })
@@ -181,7 +186,7 @@ export async function POST(request: NextRequest, { params }: { params: { chatId:
     console.log("Generating AI response")
 
     // Prepare context for AI including file information
-    const contextMessages = messages.map((m) => {
+    const contextMessages = messages.map((m: any) => {
       let messageContent = m.content
       if (m.fileUrl && m.fileName) {
         messageContent += `\n\n[${m.role === "user" ? "Gebruiker" : "Assistent"} heeft een bestand gedeeld: ${m.fileName}]`
@@ -211,10 +216,11 @@ export async function POST(request: NextRequest, { params }: { params: { chatId:
     console.error("Post message error:", error)
     return NextResponse.json(
       {
-        error: "Failed to send message",
-        details: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : 'Failed to create message',
       },
       { status: 500 },
     )
+  } finally {
+    await prisma.$disconnect();
   }
 }

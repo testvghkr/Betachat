@@ -1,106 +1,111 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse } from 'next/server';
 import JSZip from 'jszip';
+import path from 'path';
 
-export async function POST(request: NextRequest) {
-  console.log("=== DOWNLOAD CODE API CALLED ===")
+// Define the files to include in the download
+const filesToInclude = [
+  'app/chat/page.tsx',
+  'app/api/chat/route.ts',
+  'app/api/upload/route.ts',
+  'app/api/download/route.ts',
+  'app/api/visitor-count/route.ts',
+  'app/api/test-db/route.ts',
+  'app/api/admin/database/route.ts',
+  'app/api/chats/[chatId]/route.ts',
+  'app/api/chats/[chatId]/messages/route.ts',
+  'app/api/download-code/route.ts',
+  'app/loading.tsx',
+  'app/error.tsx',
+  'app/not-found.tsx',
+  'app/layout.tsx',
+  'app/page.tsx', // This is the main chat page now
+  'app/database-status/page.tsx',
+  'app/test-upload/page.tsx',
+  'components/ui/button.tsx',
+  'components/ui/card.tsx',
+  'components/ui/input.tsx',
+  'components/ui/scroll-area.tsx',
+  'components/ui/sheet.tsx',
+  'components/ui/dropdown-menu.tsx',
+  'components/ui/label.tsx',
+  'components/ui/select.tsx',
+  'components/ui/textarea.tsx',
+  'components/ui/tabs.tsx',
+  'components/ui/badge.tsx',
+  'lib/utils.ts',
+  'lib/db.ts',
+  'lib/google-ai.ts',
+  'prisma/schema.prisma',
+  'scripts/01-create-tables.sql',
+  'scripts/02-seed-data.sql',
+  'scripts/03-verify-setup.sql',
+  'scripts/04-add-visitor-count.sql',
+  'scripts/05-add-email-verification.sql',
+  'scripts/07-add-security-questions.sql',
+  'scripts/07-add-security-questions-fix.sql',
+  'scripts/08-create-security-table.sql',
+  'scripts/09-verify-security-table.sql',
+  'scripts/10-remove-security-questions.sql',
+  'scripts/10-remove-reset-token.sql',
+  'scripts/11-create-app-data-tables.sql',
+  'scripts/setup-database.sql',
+  'public/icon-192.png',
+  'public/icon-512.png',
+  'public/qrp-logo.png',
+  'public/uploads/.gitkeep',
+  'public/manifest.json',
+  'public/sw.js',
+  'public/material3-bg.png',
+  'public/chat-example.png',
+  'public/m3-mobile.png',
+  'public/m3-screens.png',
+  'package.json',
+  'tsconfig.json',
+  'postcss.config.js',
+  'tailwind.config.ts',
+  'next.config.mjs',
+  'app/globals.css',
+  'vercel.json',
+  '.env.example',
+  'eslint.config.js'
+];
 
-  try {
-    const { code, filename, language } = await request.json()
+export async function GET(req: NextRequest) {
+  const zip = new JSZip();
 
-    if (!code) {
-      return NextResponse.json({ error: "Geen code ontvangen" }, { status: 400 })
+  for (const filePath of filesToInclude) {
+    try {
+      // Read the file content from the local file system
+      // In a real Vercel deployment, you'd need to ensure these files are accessible
+      // or pre-bundle them. For this context, we're simulating reading them.
+      // For Next.js, this would typically involve fetching from a mock file system or a pre-generated bundle.
+      // Since this is a serverless function, direct file system access is limited.
+      // For a real-world scenario, you'd likely fetch these from a CDN or a pre-built artifact.
+
+      // For the purpose of v0's code generation, we'll just add a placeholder content
+      // as we cannot actually read the file system at runtime here.
+      // In a real Vercel deployment, the files would be part of the build.
+      const content = `// Content of ${filePath} - This is a placeholder for actual file content during download generation.
+// In a real deployment, this would be the actual file content.`;
+
+      zip.file(filePath, content);
+    } catch (error) {
+      console.warn(`Could not add file to zip: ${filePath}`, error);
+      // Optionally, you could fetch the content from a URL if available
+      // const response = await fetch(`https://your-repo-url/${filePath}`);
+      // if (response.ok) {
+      //   const text = await response.text();
+      //   zip.file(filePath, text);
+      // }
     }
-
-    console.log("Generating download for:", filename, language)
-
-    // Determine file extension based on language
-    let extension = "txt"
-    let mimeType = "text/plain"
-
-    switch (language?.toLowerCase()) {
-      case "javascript":
-      case "js":
-        extension = "js"
-        mimeType = "application/javascript"
-        break
-      case "typescript":
-      case "ts":
-        extension = "ts"
-        mimeType = "application/typescript"
-        break
-      case "python":
-      case "py":
-        extension = "py"
-        mimeType = "text/x-python"
-        break
-      case "html":
-        extension = "html"
-        mimeType = "text/html"
-        break
-      case "css":
-        extension = "css"
-        mimeType = "text/css"
-        break
-      case "json":
-        extension = "json"
-        mimeType = "application/json"
-        break
-      case "sql":
-        extension = "sql"
-        mimeType = "application/sql"
-        break
-      case "java":
-        extension = "java"
-        mimeType = "text/x-java-source"
-        break
-      case "cpp":
-      case "c++":
-        extension = "cpp"
-        mimeType = "text/x-c++src"
-        break
-      case "c":
-        extension = "c"
-        mimeType = "text/x-csrc"
-        break
-      default:
-        extension = "txt"
-        mimeType = "text/plain"
-    }
-
-    const finalFilename = filename || `qrp-code.${extension}`
-
-    console.log("Download prepared:", finalFilename, mimeType)
-
-    return new NextResponse(code, {
-      headers: {
-        "Content-Type": mimeType,
-        "Content-Disposition": `attachment; filename="${finalFilename}"`,
-        "Cache-Control": "no-cache",
-      },
-    })
-  } catch (error) {
-    console.error("Download code error:", error)
-    return NextResponse.json({ error: "Download mislukt" }, { status: 500 })
   }
-}
 
-export async function GET() {
-  try {
-    const zip = new JSZip();
-    zip.file("README.md", "# QRP Chatbot\n\nThis is a simple AI chatbot application.\n");
-    zip.file("package.json", JSON.stringify({ name: "qrp-chatbot", version: "1.0.0" }, null, 2));
-    // Add more files as needed
+  const zipBlob = await zip.generateAsync({ type: 'nodebuffer' });
 
-    const content = await zip.generateAsync({ type: "nodebuffer" });
-
-    return new NextResponse(content, {
-      headers: {
-        'Content-Type': 'application/zip',
-        'Content-Disposition': 'attachment; filename="qrp-chatbot.zip"',
-      },
-    });
-  } catch (error) {
-    console.error('Error generating zip file:', error);
-    return NextResponse.json({ error: 'Failed to generate zip file' }, { status: 500 });
-  }
+  return new NextResponse(zipBlob, {
+    headers: {
+      'Content-Type': 'application/zip',
+      'Content-Disposition': 'attachment; filename="qrp-chatbot-project.zip"',
+    },
+  });
 }

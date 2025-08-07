@@ -42,7 +42,7 @@ export async function createUser(email: string, name: string, hashedPassword: st
     id: generateId(),
     email,
     name,
-    password: hashedPassword,
+        password: hashedPassword,
     created_at: new Date(),
     updated_at: new Date(),
   };
