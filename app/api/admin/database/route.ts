@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/db"
+import { prisma, sql } from "@/lib/db"
 
 export async function GET(request: NextRequest) {
   console.log("=== DATABASE ADMIN API CALLED ===")
@@ -8,6 +8,11 @@ export async function GET(request: NextRequest) {
     // Test connection
     await prisma.$connect()
     console.log("✅ Database connected")
+
+    // Example: Get table names
+    const tables = await sql`
+      SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema';
+    `;
 
     // Get comprehensive stats
     const [userCount, chatCount, messageCount] = await Promise.all([
@@ -66,6 +71,7 @@ export async function GET(request: NextRequest) {
       },
       recentUsers,
       recentChats,
+      tables: tables.map(t => t.tablename),
       database_url: process.env.DATABASE_URL ? "✅ Configured" : "❌ Missing",
       timestamp: new Date().toISOString(),
     })

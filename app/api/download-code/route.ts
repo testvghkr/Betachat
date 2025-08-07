@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import JSZip from 'jszip';
 
 export async function POST(request: NextRequest) {
   console.log("=== DOWNLOAD CODE API CALLED ===")
@@ -80,5 +81,26 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Download code error:", error)
     return NextResponse.json({ error: "Download mislukt" }, { status: 500 })
+  }
+}
+
+export async function GET() {
+  try {
+    const zip = new JSZip();
+    zip.file("README.md", "# QRP Chatbot\n\nThis is a simple AI chatbot application.\n");
+    zip.file("package.json", JSON.stringify({ name: "qrp-chatbot", version: "1.0.0" }, null, 2));
+    // Add more files as needed
+
+    const content = await zip.generateAsync({ type: "nodebuffer" });
+
+    return new NextResponse(content, {
+      headers: {
+        'Content-Type': 'application/zip',
+        'Content-Disposition': 'attachment; filename="qrp-chatbot.zip"',
+      },
+    });
+  } catch (error) {
+    console.error('Error generating zip file:', error);
+    return NextResponse.json({ error: 'Failed to generate zip file' }, { status: 500 });
   }
 }

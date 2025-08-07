@@ -72,4 +72,7 @@ LEFT JOIN "Message" m ON c."id" = m."chatId"
 GROUP BY u."id", u."name", u."email", c."id", c."title"
 ORDER BY u."name";
 
+-- This script is now redundant as we don't have specific verification steps for this simplified version.
+-- Keeping it for historical context if needed.
+
 SELECT '✅ Database setup verification complete!' as status;

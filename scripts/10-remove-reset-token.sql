@@ -1,5 +1,8 @@
 -- Verwijder de reset token functionaliteit
 
+-- This script is now redundant as reset token functionality is removed.
+-- Keeping it for historical context if needed.
+
 -- Verwijder de reset token kolommen uit de User tabel
 ALTER TABLE "User" DROP COLUMN IF EXISTS "resetToken";
 ALTER TABLE "User" DROP COLUMN IF EXISTS "resetTokenExpires";

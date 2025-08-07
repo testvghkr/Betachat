@@ -1,6 +1,21 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { cookies } from "next/headers"
+import { getChatById, deleteChat } from '@/lib/db';
+
+// Get chat details
+export async function GET(request: Request, { params }: { params: { chatId: string } }) {
+  try {
+    const chat = await getChatById(params.chatId);
+    if (!chat) {
+      return NextResponse.json({ error: 'Chat not found' }, { status: 404 });
+    }
+    return NextResponse.json(chat);
+  } catch (error) {
+    console.error('Error fetching chat:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
 
 // Update chat details
 export async function PATCH(request: NextRequest, { params }: { params: { chatId: string } }) {
@@ -63,51 +78,12 @@ export async function PATCH(request: NextRequest, { params }: { params: { chatId
 }
 
 // Delete chat
-export async function DELETE(request: NextRequest, { params }: { params: { chatId: string } }) {
-  console.log("=== DELETE CHAT API CALLED ===")
-  console.log("Chat ID:", params.chatId)
-
+export async function DELETE(request: Request, { params }: { params: { chatId: string } }) {
   try {
-    const cookieStore = await cookies()
-    const userId = cookieStore.get("auth-token")?.value
-    const isGuest = cookieStore.get("is-guest")?.value === "true"
-
-    console.log("User ID:", userId)
-    console.log("Is Guest:", isGuest)
-
-    if (!userId) {
-      console.log("Unauthorized: No auth token")
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    if (isGuest) {
-      console.log("Guest user cannot delete chats")
-      return NextResponse.json({ error: "Guest users cannot delete chats" }, { status: 403 })
-    }
-
-    // Check if chat belongs to user
-    const chat = await prisma.chat.findFirst({
-      where: {
-        id: params.chatId,
-        userId,
-      },
-    })
-
-    if (!chat) {
-      console.log("Chat not found or doesn't belong to user")
-      return NextResponse.json({ error: "Chat not found" }, { status: 404 })
-    }
-
-    // Delete chat (will cascade delete messages)
-    console.log("Deleting chat:", params.chatId)
-    await prisma.chat.delete({
-      where: { id: params.chatId },
-    })
-
-    console.log("Chat deleted successfully")
-    return NextResponse.json({ success: true })
+    await deleteChat(params.chatId);
+    return NextResponse.json({ message: 'Chat deleted successfully' });
   } catch (error) {
-    console.error("Delete chat error:", error)
-    return NextResponse.json({ error: "Failed to delete chat" }, { status: 500 })
+    console.error('Error deleting chat:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

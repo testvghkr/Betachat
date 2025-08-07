@@ -19,3 +19,6 @@ SELECT column_name, data_type, is_nullable, column_default
 FROM information_schema.columns 
 WHERE table_name = 'User' AND table_schema = 'public'
 ORDER BY ordinal_position;
+
+-- This script is now redundant as email verification is removed.
+-- Keeping it for historical context if needed.

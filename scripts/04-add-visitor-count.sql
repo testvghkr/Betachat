@@ -14,3 +14,6 @@ ON CONFLICT (id) DO NOTHING;
 -- Verify the table was created
 SELECT 'Visitor count table created successfully!' as status;
 SELECT * FROM visitor_count;
+
+-- This script is now redundant as setup-database.sql handles table creation.
+-- Keeping it for historical context if needed.

@@ -65,3 +65,6 @@ SELECT column_name, data_type, is_nullable
 FROM information_schema.columns 
 WHERE table_name = 'User' AND table_schema = 'public'
 ORDER BY ordinal_position;
+
+-- This script is now redundant as security questions are removed.
+-- Keeping it for historical context if needed.

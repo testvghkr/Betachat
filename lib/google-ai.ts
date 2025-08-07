@@ -1,32 +1,30 @@
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY || '')
+const API_KEY = process.env.GOOGLE_AI_API_KEY;
 
-export async function generateResponse(messages: any[]) {
+if (!API_KEY) {
+  throw new Error('GOOGLE_AI_API_KEY environment variable is not set.');
+}
+
+const genAI = new GoogleGenerativeAI(API_KEY);
+
+export const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+
+// Export generateResponse as requested by the error
+export async function generateResponse(message: string, history: Array<{role: string, content: string}> = []): Promise<string> {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
-    
-    // Convert messages to Gemini format
-    const history = messages.slice(0, -1).map(msg => ({
-      role: msg.role === 'user' ? 'user' : 'model',
-      parts: [{ text: msg.content }]
-    }))
-    
-    const lastMessage = messages[messages.length - 1]
-    
     const chat = model.startChat({
-      history,
-      generationConfig: {
-        maxOutputTokens: 2048,
-        temperature: 0.7,
-      },
-    })
-    
-    const result = await chat.sendMessageStream(lastMessage.content)
-    
-    return result.stream
+      history: history.map(msg => ({
+        role: msg.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: msg.content }]
+      }))
+    });
+
+    const result = await chat.sendMessage(message);
+    const response = await result.response;
+    return response.text();
   } catch (error) {
-    console.error('Google AI Error:', error)
-    throw error
+    console.error('Google AI API error:', error);
+    throw new Error('Er ging iets mis bij het genereren van een antwoord');
   }
 }

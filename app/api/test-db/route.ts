@@ -1,14 +1,19 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/db"
+import { prisma, sql } from "@/lib/db"
 
 export async function GET(request: NextRequest) {
   console.log("=== DATABASE TEST API CALLED ===")
 
   try {
-    // Test database connection
-    console.log("Testing database connection...")
+    // Test database connection using Prisma
+    console.log("Testing database connection with Prisma...")
     await prisma.$connect()
-    console.log("✅ Database connected successfully")
+    console.log("✅ Database connected successfully with Prisma")
+
+    // Test database connection using raw SQL
+    console.log("Testing database connection with raw SQL...")
+    await sql`SELECT 1`;
+    console.log("✅ Database connected successfully with raw SQL")
 
     // Test user table
     console.log("Testing User table...")

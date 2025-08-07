@@ -7,6 +7,9 @@ ADD COLUMN IF NOT EXISTS "securityAnswer" TEXT;
 -- Create index for better performance
 CREATE INDEX IF NOT EXISTS "User_securityQuestion_idx" ON "User"("securityQuestion");
 
+-- This script is now redundant as security questions are removed.
+-- Keeping it for historical context if needed.
+
 -- Verify the changes
 SELECT 'Security questions fields added successfully!' as status;
 

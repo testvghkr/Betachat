@@ -43,6 +43,9 @@ VALUES (
     CURRENT_TIMESTAMP
 ) ON CONFLICT ("id") DO NOTHING;
 
+-- This script is now redundant as we don't have specific seed data for this simplified version.
+-- Keeping it for historical context if needed.
+
 -- Verify the data was inserted
 SELECT 
     (SELECT COUNT(*) FROM "User") as users_count,

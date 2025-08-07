@@ -1,145 +1,98 @@
-"use client"
+'use client';
 
-import type React from "react"
-
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import Image from "next/image"
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Upload, XCircle } from 'lucide-react';
 
 export default function TestUploadPage() {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [uploadResult, setUploadResult] = useState<any>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [fileUrl, setFileUrl] = useState<string | null>(null);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setSelectedFile(file)
-      setUploadResult(null)
-      setError(null)
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
+      setMessage('');
+      setFileUrl(null);
     }
-  }
+  };
 
-  const uploadFile = async () => {
-    if (!selectedFile) return
+  const handleUpload = async () => {
+    if (!file) {
+      setMessage('Please select a file first.');
+      return;
+    }
 
-    setLoading(true)
-    setError(null)
-
-    const formData = new FormData()
-    formData.append("file", selectedFile)
+    setUploading(true);
+    setMessage('Uploading...');
+    const formData = new FormData();
+    formData.append('file', file);
 
     try {
-      const response = await fetch("/api/upload", {
-        method: "POST",
+      const response = await fetch('/api/upload', {
+        method: 'POST',
         body: formData,
-      })
-
-      const data = await response.json()
+      });
 
       if (response.ok) {
-        setUploadResult(data)
-        console.log("Upload successful:", data)
+        const data = await response.json();
+        setMessage(`Upload successful! URL: ${data.url}`);
+        setFileUrl(data.url);
+        setFile(null);
       } else {
-        setError(data.error || "Upload failed")
-        console.error("Upload failed:", data)
+        const errorData = await response.json();
+        setMessage(`Upload failed: ${errorData.error || 'Unknown error'}`);
       }
-    } catch (err) {
-      setError("Network error")
-      console.error("Upload error:", err)
+    } catch (error) {
+      console.error('Error during upload:', error);
+      setMessage(`Upload failed: ${(error as Error).message}`);
     } finally {
-      setLoading(false)
+      setUploading(false);
     }
-  }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-900 p-4">
-      <div className="max-w-2xl mx-auto">
-        <div className="text-center mb-8">
-          <Image src="/qrp-logo.png" alt="QRP Logo" width={120} height={80} className="object-contain mx-auto mb-4" />
-          <h1 className="text-white text-2xl font-bold">Upload Test</h1>
-        </div>
-
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-          <div className="space-y-4">
-            <div>
-              <label className="block text-white text-sm font-medium mb-2">Selecteer een bestand:</label>
-              <Input
-                type="file"
-                onChange={handleFileSelect}
-                className="bg-gray-700 border-gray-600 text-white"
-                accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.js,.py,.html,.css,.json"
-              />
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-900 p-4">
+      <Card className="w-full max-w-md glass-surface border-white/20 text-white">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold text-center">Bestand Upload Test</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <Input
+              type="file"
+              onChange={handleFileChange}
+              className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-white/50"
+            />
+            {file && (
+              <Button variant="ghost" size="icon" onClick={() => setFile(null)} className="text-red-400 hover:bg-red-500/20">
+                <XCircle className="h-5 w-5" />
+              </Button>
+            )}
+          </div>
+          {file && <p className="text-sm text-white/80">Geselecteerd bestand: {file.name}</p>}
+          <Button
+            onClick={handleUpload}
+            disabled={!file || uploading}
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+          >
+            {uploading ? 'Uploaden...' : 'Upload Bestand'}
+            <Upload className="ml-2 h-4 w-4" />
+          </Button>
+          {message && <p className="text-center text-sm">{message}</p>}
+          {fileUrl && (
+            <div className="text-center">
+              <p className="text-sm text-white/80">Bestand URL:</p>
+              <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-300 hover:underline break-all">
+                {fileUrl}
+              </a>
             </div>
-
-            {selectedFile && (
-              <div className="bg-gray-700 p-4 rounded">
-                <h3 className="text-white font-medium mb-2">Geselecteerd bestand:</h3>
-                <ul className="text-gray-300 text-sm space-y-1">
-                  <li>📄 Naam: {selectedFile.name}</li>
-                  <li>📏 Grootte: {(selectedFile.size / 1024).toFixed(2)} KB</li>
-                  <li>🏷️ Type: {selectedFile.type || "Onbekend"}</li>
-                </ul>
-              </div>
-            )}
-
-            <Button
-              onClick={uploadFile}
-              disabled={!selectedFile || loading}
-              className="w-full bg-gradient-to-r from-orange-500 to-blue-500"
-            >
-              {loading ? "Uploaden..." : "Upload Bestand"}
-            </Button>
-
-            {error && (
-              <div className="bg-red-900 border border-red-700 p-4 rounded">
-                <h3 className="text-red-200 font-medium">❌ Upload Error:</h3>
-                <p className="text-red-300 text-sm">{error}</p>
-              </div>
-            )}
-
-            {uploadResult && (
-              <div className="bg-green-900 border border-green-700 p-4 rounded">
-                <h3 className="text-green-200 font-medium mb-2">✅ Upload Successful!</h3>
-                <ul className="text-green-300 text-sm space-y-1">
-                  <li>
-                    🔗 URL:{" "}
-                    <a href={uploadResult.url} target="_blank" className="underline" rel="noreferrer">
-                      {uploadResult.url}
-                    </a>
-                  </li>
-                  <li>📄 Filename: {uploadResult.filename}</li>
-                  <li>📏 Size: {uploadResult.size} bytes</li>
-                  <li>🏷️ Type: {uploadResult.type}</li>
-                </ul>
-
-                {uploadResult.url.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i) && (
-                  <div className="mt-4">
-                    <img
-                      src={uploadResult.url || "/placeholder.svg"}
-                      alt="Uploaded file"
-                      className="max-w-full h-auto rounded"
-                      style={{ maxHeight: "300px" }}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="mt-6">
-            <Button
-              onClick={() => (window.location.href = "/chat")}
-              variant="outline"
-              className="w-full border-gray-600 text-gray-300"
-            >
-              ← Terug naar Chat
-            </Button>
-          </div>
-        </div>
-      </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
-  )
+  );
 }

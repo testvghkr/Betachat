@@ -1,22 +1,22 @@
-import { NextResponse } from "next/server"
-import { getVisitorCount, incrementVisitorCount } from "@/lib/db"
+import { NextResponse } from 'next/server';
+import { getVisitorCount, incrementVisitorCount } from '@/lib/db';
 
 export async function GET() {
   try {
-    const count = await getVisitorCount()
-    return NextResponse.json({ count }, { status: 200 })
+    const count = await getVisitorCount();
+    return NextResponse.json({ count });
   } catch (error) {
-    console.error("Error getting visitor count:", error)
-    return NextResponse.json({ count: Math.floor(Math.random() * 1000) + 100 }, { status: 200 })
+    console.error('Error getting visitor count:', error);
+    return NextResponse.json({ error: 'Failed to get visitor count' }, { status: 500 });
   }
 }
 
 export async function POST() {
   try {
-    const count = await incrementVisitorCount()
-    return NextResponse.json({ count }, { status: 200 })
+    await incrementVisitorCount();
+    return NextResponse.json({ message: 'Visitor count incremented' });
   } catch (error) {
-    console.error("Error incrementing visitor count:", error)
-    return NextResponse.json({ count: Math.floor(Math.random() * 1000) + 100 }, { status: 200 })
+    console.error('Error incrementing visitor count:', error);
+    return NextResponse.json({ error: 'Failed to increment visitor count' }, { status: 500 });
   }
 }

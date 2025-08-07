@@ -98,3 +98,6 @@ CREATE INDEX IF NOT EXISTS idx_color_palettes_user_id ON color_palettes(user_id)
 CREATE INDEX IF NOT EXISTS idx_game_scores_user_id ON game_scores(user_id);
 CREATE INDEX IF NOT EXISTS idx_chat_files_user_id ON chat_files(user_id);
 CREATE INDEX IF NOT EXISTS idx_chat_files_chat_id ON chat_files(chat_id);
+
+-- This script is now redundant as app-specific data tables are removed.
+-- Keeping it for historical context if needed.

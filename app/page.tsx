@@ -1,665 +1,314 @@
-"use client"
+'use client'
 
-import { useState, useRef, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Mic, MicOff, Volume2, VolumeX, Send, Menu, User, Settings, LogOut, Upload, Download, Trash2, MessageSquare, Home } from 'lucide-react'
-import Image from "next/image"
-import { useAuth } from "@/lib/auth-context"
-import { useRouter } from "next/navigation"
+import { useState, useRef, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Send, Mic, StopCircle, History, Trash2, Zap, Upload, Download } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface Message {
   id: string
-  role: "user" | "assistant"
+  role: 'user' | 'assistant'
   content: string
-  timestamp: Date
-}
-
-interface Chat {
-  id: string
-  title: string
-  messages: Message[]
-  createdAt: Date
+  timestamp: string
+  fileUrl?: string
+  fileName?: string
 }
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([])
-  const [input, setInput] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [isListening, setIsListening] = useState(false)
-  const [isSpeaking, setIsSpeaking] = useState(false)
-  const [chats, setChats] = useState<Chat[]>([])
+  const [input, setInput] = useState('')
+  const [isRecording, setIsRecording] = useState(false)
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
+  const [audioChunks, setAudioChunks] = useState<Blob[]>([])
+  const [chatHistory, setChatHistory] = useState<string[]>([])
   const [currentChatId, setCurrentChatId] = useState<string | null>(null)
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const recognitionRef = useRef<any>(null)
-  
-  const { user, logout } = useAuth()
-  const router = useRouter()
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
-  // Load chats from localStorage
   useEffect(() => {
-    const savedChats = localStorage.getItem("qrp-chats")
-    if (savedChats) {
-      const parsedChats = JSON.parse(savedChats).map((chat: any) => ({
-        ...chat,
-        createdAt: new Date(chat.createdAt),
-        messages: chat.messages.map((msg: any) => ({
-          ...msg,
-          timestamp: new Date(msg.timestamp)
-        }))
-      }))
-      setChats(parsedChats)
-      
-      if (parsedChats.length > 0) {
-        const latestChat = parsedChats[0]
-        setCurrentChatId(latestChat.id)
-        setMessages(latestChat.messages)
-      }
-    }
-  }, [])
-
-  // Save chats to localStorage
-  useEffect(() => {
-    if (chats.length > 0) {
-      localStorage.setItem("qrp-chats", JSON.stringify(chats))
-    }
-  }, [chats])
-
-  // Auto-scroll to bottom
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    scrollToBottom()
   }, [messages])
 
-  // Initialize speech recognition
   useEffect(() => {
-    if (typeof window !== "undefined" && "webkitSpeechRecognition" in window) {
-      const recognition = new (window as any).webkitSpeechRecognition()
-      recognition.continuous = false
-      recognition.interimResults = false
-      recognition.lang = "nl-NL"
-      
-      recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript
-        setInput(transcript)
-        setIsListening(false)
+    // Load chat history from localStorage on mount
+    const savedHistory = localStorage.getItem('chatHistory')
+    if (savedHistory) {
+      setChatHistory(JSON.parse(savedHistory))
+    }
+    // Load current chat messages if a chat ID is active
+    if (currentChatId) {
+      const savedChat = localStorage.getItem(`chat-${currentChatId}`)
+      if (savedChat) {
+        setMessages(JSON.parse(savedChat))
       }
-      
-      recognition.onerror = () => {
-        setIsListening(false)
-      }
-      
-      recognition.onend = () => {
-        setIsListening(false)
-      }
-      
-      recognitionRef.current = recognition
     }
-  }, [])
+  }, [currentChatId])
 
-  const startListening = () => {
-    if (recognitionRef.current) {
-      setIsListening(true)
-      recognitionRef.current.start()
-    }
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  const stopListening = () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop()
-      setIsListening(false)
-    }
-  }
+  const handleSendMessage = async () => {
+    if (input.trim() === '' && !selectedFile) return
 
-  const speak = (text: string) => {
-    if ("speechSynthesis" in window) {
-      const utterance = new SpeechSynthesisUtterance(text)
-      utterance.lang = "nl-NL"
-      utterance.rate = 0.9
-      utterance.pitch = 1
-      
-      utterance.onstart = () => setIsSpeaking(true)
-      utterance.onend = () => setIsSpeaking(false)
-      utterance.onerror = () => setIsSpeaking(false)
-      
-      speechSynthesis.speak(utterance)
-    }
-  }
-
-  const stopSpeaking = () => {
-    if ("speechSynthesis" in window) {
-      speechSynthesis.cancel()
-      setIsSpeaking(false)
-    }
-  }
-
-  const createNewChat = () => {
-    const newChat: Chat = {
+    const newMessage: Message = {
       id: Date.now().toString(),
-      title: "Nieuwe Chat",
-      messages: [],
-      createdAt: new Date()
+      role: 'user',
+      content: input,
+      timestamp: new Date().toLocaleTimeString(),
+      fileUrl: selectedFile ? URL.createObjectURL(selectedFile) : undefined,
+      fileName: selectedFile ? selectedFile.name : undefined,
     }
-    
-    setChats(prev => [newChat, ...prev])
-    setCurrentChatId(newChat.id)
-    setMessages([])
-  }
 
-  const selectChat = (chatId: string) => {
-    const chat = chats.find(c => c.id === chatId)
-    if (chat) {
-      setCurrentChatId(chatId)
-      setMessages(chat.messages)
-    }
-  }
+    setMessages((prevMessages) => [...prevMessages, newMessage])
+    setInput('')
+    setSelectedFile(null)
 
-  const deleteChat = (chatId: string) => {
-    setChats(prev => prev.filter(c => c.id !== chatId))
-    if (currentChatId === chatId) {
-      const remainingChats = chats.filter(c => c.id !== chatId)
-      if (remainingChats.length > 0) {
-        selectChat(remainingChats[0].id)
-      } else {
-        createNewChat()
-      }
-    }
-  }
-
-  const updateChatTitle = (chatId: string, firstMessage: string) => {
-    const title = firstMessage.slice(0, 30) + (firstMessage.length > 30 ? "..." : "")
-    setChats(prev => prev.map(chat => 
-      chat.id === chatId ? { ...chat, title } : chat
-    ))
-  }
-
-  const uploadFile = async (file: File) => {
-    const formData = new FormData()
-    formData.append("file", file)
-    
     try {
-      const response = await fetch("/api/upload", {
-        method: "POST",
+      const formData = new FormData()
+      formData.append('prompt', input)
+      if (selectedFile) {
+        formData.append('file', selectedFile)
+      }
+
+      const response = await fetch('/api/chat', {
+        method: 'POST',
         body: formData,
-      })
-      
-      if (response.ok) {
-        const result = await response.json()
-        return result.url
-      }
-    } catch (error) {
-      console.error("Upload error:", error)
-    }
-    return null
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!input.trim() && !selectedFile) return
-
-    let messageContent = input.trim()
-    
-    // Handle file upload
-    if (selectedFile) {
-      const fileUrl = await uploadFile(selectedFile)
-      if (fileUrl) {
-        messageContent += `\n\n[Bestand: ${selectedFile.name}](${fileUrl})`
-      }
-      setSelectedFile(null)
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ""
-      }
-    }
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      content: messageContent,
-      timestamp: new Date()
-    }
-
-    // Create new chat if none exists
-    if (!currentChatId) {
-      createNewChat()
-    }
-
-    const newMessages = [...messages, userMessage]
-    setMessages(newMessages)
-    setInput("")
-    setIsLoading(true)
-
-    try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messages: newMessages,
-        }),
       })
 
       if (!response.ok) {
-        throw new Error("Failed to get response")
+        throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      const reader = response.body?.getReader()
-      const decoder = new TextDecoder()
-      let assistantContent = ""
-
+      const data = await response.json()
       const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: "",
-        timestamp: new Date()
+        id: Date.now().toString() + '-ai',
+        role: 'assistant',
+        content: data.response,
+        timestamp: new Date().toLocaleTimeString(),
       }
+      setMessages((prevMessages) => [...prevMessages, assistantMessage])
 
-      setMessages(prev => [...prev, assistantMessage])
-
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-
-          const chunk = decoder.decode(value)
-          const lines = chunk.split("\n")
-
-          for (const line of lines) {
-            if (line.startsWith("data: ")) {
-              const data = line.slice(6)
-              if (data === "[DONE]") continue
-              
-              try {
-                const parsed = JSON.parse(data)
-                if (parsed.content) {
-                  assistantContent += parsed.content
-                  setMessages(prev => prev.map(msg => 
-                    msg.id === assistantMessage.id 
-                      ? { ...msg, content: assistantContent }
-                      : msg
-                  ))
-                }
-              } catch (e) {
-                // Ignore parsing errors
-              }
-            }
-          }
-        }
-      }
-
-      // Update chat with new messages
-      const finalMessages = [...newMessages, { ...assistantMessage, content: assistantContent }]
-      
-      if (currentChatId) {
-        setChats(prev => prev.map(chat => 
-          chat.id === currentChatId 
-            ? { ...chat, messages: finalMessages }
-            : chat
-        ))
-        
-        // Update chat title if it's the first message
-        if (messages.length === 0) {
-          updateChatTitle(currentChatId, messageContent)
-        }
+      // Save chat to history
+      const updatedMessages = [...messages, newMessage, assistantMessage]
+      if (!currentChatId) {
+        const newChatId = `chat-${Date.now()}`
+        setCurrentChatId(newChatId)
+        localStorage.setItem(`chat-${newChatId}`, JSON.stringify(updatedMessages))
+        setChatHistory((prevHistory) => {
+          const newHistory = [...prevHistory, newChatId]
+          localStorage.setItem('chatHistory', JSON.stringify(newHistory))
+          return newHistory
+        })
+      } else {
+        localStorage.setItem(`chat-${currentChatId}`, JSON.stringify(updatedMessages))
       }
 
     } catch (error) {
-      console.error("Error:", error)
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: "Sorry, er is een fout opgetreden. Probeer het opnieuw.",
-        timestamp: new Date()
+      console.error('Error sending message:', error)
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        {
+          id: Date.now().toString() + '-error',
+          role: 'assistant',
+          content: 'Sorry, er ging iets mis. Probeer het opnieuw.',
+          timestamp: new Date().toLocaleTimeString(),
+        },
+      ])
+    }
+  }
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const recorder = new MediaRecorder(stream)
+      recorder.ondataavailable = (event) => {
+        setAudioChunks((prev) => [...prev, event.data])
       }
-      setMessages(prev => [...prev, errorMessage])
-    } finally {
-      setIsLoading(false)
+      recorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' })
+        const audioUrl = URL.createObjectURL(audioBlob)
+        if (audioRef.current) {
+          audioRef.current.src = audioUrl
+        }
+        // Send audio to API for transcription (placeholder)
+        const transcribedText = await transcribeAudio(audioBlob)
+        setInput(transcribedText)
+        setAudioChunks([])
+      }
+      recorder.start()
+      setMediaRecorder(recorder)
+      setIsRecording(true)
+    } catch (error) {
+      console.error('Error accessing microphone:', error)
     }
   }
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setSelectedFile(file)
+  const stopRecording = () => {
+    if (mediaRecorder) {
+      mediaRecorder.stop()
+      setIsRecording(false)
     }
   }
 
-  const exportChat = () => {
-    const chatData = {
-      title: chats.find(c => c.id === currentChatId)?.title || "Chat Export",
-      messages: messages,
-      exportedAt: new Date().toISOString()
-    }
-    
-    const blob = new Blob([JSON.stringify(chatData, null, 2)], { type: "application/json" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `qrp-chat-${Date.now()}.json`
-    a.click()
-    URL.revokeObjectURL(url)
+  const transcribeAudio = async (audioBlob: Blob): Promise<string> => {
+    // Placeholder for actual transcription API call
+    console.log('Transcribing audio:', audioBlob)
+    return 'Dit is een voorbeeld van getranscribeerde tekst.' // Mock transcription
   }
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <Image src="/qrp-logo.png" alt="QRP Logo" width={120} height={80} className="mx-auto mb-4" />
-            <CardTitle className="md-headline-small">Welkom bij QRP Chat</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Button 
-              onClick={() => router.push("/login")} 
-              className="w-full md-filled-button"
-            >
-              Inloggen
-            </Button>
-            <Button 
-              onClick={() => router.push("/login")} 
-              variant="outline" 
-              className="w-full"
-            >
-              Registreren
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
+  const handleClearChat = () => {
+    setMessages([])
+    if (currentChatId) {
+      localStorage.removeItem(`chat-${currentChatId}`)
+      setChatHistory((prevHistory) => {
+        const newHistory = prevHistory.filter((id) => id !== currentChatId)
+        localStorage.setItem('chatHistory', JSON.stringify(newHistory))
+        return newHistory
+      })
+      setCurrentChatId(null)
+    }
   }
+
+  const handleLoadChat = (chatId: string) => {
+    setCurrentChatId(chatId)
+  }
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      setSelectedFile(event.target.files[0])
+    }
+  }
+
+  const handleDownloadFile = async (fileUrl: string, fileName: string) => {
+    try {
+      const response = await fetch(`/api/download?fileUrl=${encodeURIComponent(fileUrl)}&fileName=${encodeURIComponent(fileName)}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      alert('Bestand kon niet worden gedownload.');
+    }
+  };
 
   return (
-    <div className="flex h-screen bg-background">
-      {/* Sidebar */}
-      <div className="hidden md:flex md:w-80 md:flex-col border-r border-outline-variant">
-        <div className="p-4 border-b border-outline-variant">
-          <div className="flex items-center gap-3 mb-4">
-            <Image src="/qrp-logo.png" alt="QRP Logo" width={40} height={40} />
-            <h1 className="md-title-large font-semibold">QRP Chat</h1>
-          </div>
-          <Button onClick={createNewChat} className="w-full md-filled-button">
-            <MessageSquare className="w-4 h-4 mr-2" />
-            Nieuwe Chat
+    <div className="flex flex-col h-screen bg-surface-container-lowest text-on-surface">
+      <header className="flex items-center justify-between p-4 bg-primary text-on-primary shadow-md">
+        <h1 className="text-xl font-bold">QRP Chatbot</h1>
+        <div className="flex items-center space-x-2">
+          <Button variant="ghost" size="icon" onClick={() => alert('Geschiedenis openen')}>
+            <History className="h-5 w-5" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={handleClearChat}>
+            <Trash2 className="h-5 w-5" />
           </Button>
         </div>
-        
-        <ScrollArea className="flex-1 p-4">
-          <div className="space-y-2">
-            {chats.map((chat) => (
-              <div key={chat.id} className="group relative">
-                <Button
-                  variant={currentChatId === chat.id ? "secondary" : "ghost"}
-                  className="w-full justify-start text-left h-auto p-3"
-                  onClick={() => selectChat(chat.id)}
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="md-body-medium truncate">{chat.title}</div>
-                    <div className="md-body-small text-muted-foreground">
-                      {chat.messages.length} berichten
-                    </div>
-                  </div>
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={() => deleteChat(chat.id)}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-            ))}
-          </div>
-        </ScrollArea>
-        
-        <div className="p-4 border-t border-outline-variant">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="w-full justify-start">
-                <User className="w-4 h-4 mr-2" />
-                {user.name}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem onClick={() => router.push("/account")}>
-                <Settings className="w-4 h-4 mr-2" />
-                Account
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={logout}>
-                <LogOut className="w-4 h-4 mr-2" />
-                Uitloggen
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
+      </header>
 
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-outline-variant">
-          <div className="flex items-center gap-3">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="sm" className="md:hidden">
-                  <Menu className="w-5 h-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-80 p-0">
-                <SheetHeader className="p-4 border-b border-outline-variant">
-                  <div className="flex items-center gap-3">
-                    <Image src="/qrp-logo.png" alt="QRP Logo" width={40} height={40} />
-                    <SheetTitle className="md-title-large">QRP Chat</SheetTitle>
-                  </div>
-                  <Button onClick={createNewChat} className="w-full md-filled-button">
-                    <MessageSquare className="w-4 h-4 mr-2" />
-                    Nieuwe Chat
-                  </Button>
-                </SheetHeader>
-                
-                <ScrollArea className="flex-1 p-4">
-                  <div className="space-y-2">
-                    {chats.map((chat) => (
-                      <div key={chat.id} className="group relative">
-                        <Button
-                          variant={currentChatId === chat.id ? "secondary" : "ghost"}
-                          className="w-full justify-start text-left h-auto p-3"
-                          onClick={() => selectChat(chat.id)}
-                        >
-                          <div className="flex-1 min-w-0">
-                            <div className="md-body-medium truncate">{chat.title}</div>
-                            <div className="md-body-small text-muted-foreground">
-                              {chat.messages.length} berichten
-                            </div>
-                          </div>
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => deleteChat(chat.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </SheetContent>
-            </Sheet>
-            
-            <div className="md:hidden flex items-center gap-2">
-              <Image src="/qrp-logo.png" alt="QRP Logo" width={32} height={32} />
-              <h1 className="md-title-medium font-semibold">QRP</h1>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={exportChat}>
-              <Download className="w-4 h-4" />
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  <User className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => router.push("/account")}>
-                  <Settings className="w-4 h-4 mr-2" />
-                  Account
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={logout}>
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Uitloggen
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-
-        {/* Messages */}
-        <ScrollArea className="flex-1 p-4">
-          <div className="max-w-4xl mx-auto space-y-4">
-            {messages.length === 0 ? (
-              <div className="text-center py-12">
-                <Image src="/qrp-logo.png" alt="QRP Logo" width={120} height={80} className="mx-auto mb-6 opacity-50" />
-                <h2 className="md-headline-small mb-2">Hallo! Ik ben QRP</h2>
-                <p className="md-body-large text-muted-foreground mb-6">
-                  Ik ben je vriendelijke Nederlandse AI-assistent. Ik kan je helpen met vragen, code schrijven, huiswerk maken, en nog veel meer!
-                </p>
-                <div className="flex flex-wrap gap-2 justify-center">
-                  <Badge variant="secondary">Code schrijven</Badge>
-                  <Badge variant="secondary">Huiswerk hulp</Badge>
-                  <Badge variant="secondary">Creatieve projecten</Badge>
-                  <Badge variant="secondary">Algemene vragen</Badge>
-                </div>
+      <main className="flex-1 overflow-hidden p-4 flex flex-col">
+        <ScrollArea className="flex-1 p-4 rounded-lg bg-surface-container shadow-inner mb-4">
+          <div className="space-y-4">
+            {messages.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-full text-center text-on-surface-variant">
+                <Zap className="h-12 w-12 text-primary mb-4" />
+                <p className="text-lg font-semibold">Hallo! Ik ben QRP, je vriendelijke AI-assistent.</p>
+                <p className="text-sm">Waar kan ik je vandaag mee helpen?</p>
               </div>
-            ) : (
-              messages.map((message) => (
-                <div key={message.id} className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-                  {message.role === "assistant" && (
-                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                      <Image src="/qrp-logo.png" alt="QRP" width={20} height={20} />
-                    </div>
-                  )}
-                  <div className={`max-w-[80%] ${message.role === "user" ? "order-first" : ""}`}>
-                    <Card className={`${message.role === "user" ? "bg-primary text-primary-foreground" : "md-card"}`}>
-                      <CardContent className="p-4">
-                        <div className="md-body-medium whitespace-pre-wrap">{message.content}</div>
-                        {message.role === "assistant" && (
-                          <div className="flex items-center gap-2 mt-2">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => speak(message.content)}
-                              disabled={isSpeaking}
-                            >
-                              {isSpeaking ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                            </Button>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                    <div className="md-body-small text-muted-foreground mt-1 px-2">
-                      {message.timestamp.toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" })}
-                    </div>
-                  </div>
-                  {message.role === "user" && (
-                    <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
-                      <User className="w-4 h-4" />
-                    </div>
-                  )}
-                </div>
-              ))
             )}
-            {isLoading && (
-              <div className="flex gap-3 justify-start">
-                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                  <Image src="/qrp-logo.png" alt="QRP" width={20} height={20} />
-                </div>
-                <Card className="md-card">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2">
-                      <div className="animate-bounce-gentle w-2 h-2 bg-primary rounded-full"></div>
-                      <div className="animate-bounce-gentle w-2 h-2 bg-primary rounded-full" style={{ animationDelay: "0.1s" }}></div>
-                      <div className="animate-bounce-gentle w-2 h-2 bg-primary rounded-full" style={{ animationDelay: "0.2s" }}></div>
-                    </div>
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={cn(
+                  'flex',
+                  message.role === 'user' ? 'justify-end' : 'justify-start'
+                )}
+              >
+                <Card
+                  className={cn(
+                    'max-w-[70%] p-3 rounded-lg shadow-md',
+                    message.role === 'user'
+                      ? 'bg-primary text-on-primary rounded-br-none'
+                      : 'bg-surface-container-high text-on-surface rounded-bl-none'
+                  )}
+                >
+                  <CardContent className="p-0">
+                    <p>{message.content}</p>
+                    {message.fileUrl && (
+                      <div className="mt-2">
+                        {message.fileUrl.startsWith('blob:') ? (
+                          <img src={message.fileUrl || "/placeholder.svg"} alt={message.fileName || 'Uploaded file'} className="max-w-full h-auto rounded-md" />
+                        ) : (
+                          <Button variant="outline" size="sm" onClick={() => handleDownloadFile(message.fileUrl!, message.fileName || 'download')}>
+                            <Download className="h-4 w-4 mr-2" /> {message.fileName || 'Bestand'}
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                    <p className="text-xs opacity-70 mt-1 text-right">{message.timestamp}</p>
                   </CardContent>
                 </Card>
               </div>
-            )}
+            ))}
             <div ref={messagesEndRef} />
           </div>
         </ScrollArea>
 
-        {/* Input */}
-        <div className="p-4 border-t border-outline-variant">
-          <div className="max-w-4xl mx-auto">
-            {selectedFile && (
-              <div className="mb-3 p-3 bg-muted rounded-lg flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Upload className="w-4 h-4" />
-                  <span className="md-body-small">{selectedFile.name}</span>
-                </div>
-                <Button size="sm" variant="ghost" onClick={() => setSelectedFile(null)}>
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-            )}
-            
-            <form onSubmit={handleSubmit} className="flex gap-2">
-              <div className="flex-1 relative">
-                <Input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Typ je bericht..."
-                  disabled={isLoading}
-                  className="md-input pr-12"
-                />
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    onChange={handleFileSelect}
-                    className="hidden"
-                    accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.js,.py,.html,.css,.json"
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Upload className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-              
-              <Button
-                type="button"
-                variant="outline"
-                onClick={isListening ? stopListening : startListening}
-                disabled={isLoading}
-                className={isListening ? "bg-destructive text-destructive-foreground" : ""}
-              >
-                {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+        <div className="flex items-center space-x-2 p-2 bg-surface-container-high rounded-lg shadow-lg">
+          <label htmlFor="file-upload" className="cursor-pointer">
+            <Button variant="ghost" size="icon" asChild>
+              <Upload className="h-5 w-5 text-on-surface-variant" />
+            </Button>
+            <Input id="file-upload" type="file" className="hidden" onChange={handleFileChange} />
+          </label>
+          {selectedFile && (
+            <Badge variant="secondary" className="mr-2">
+              {selectedFile.name}
+              <Button variant="ghost" size="icon" className="ml-1 h-4 w-4 p-0" onClick={() => setSelectedFile(null)}>
+                <Trash2 className="h-3 w-3" />
               </Button>
-              
-              <Button type="submit" disabled={isLoading || (!input.trim() && !selectedFile)} className="md-filled-button">
-                <Send className="w-4 h-4" />
-              </Button>
-            </form>
-          </div>
+            </Badge>
+          )}
+          <Input
+            type="text"
+            placeholder="Typ je bericht..."
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                handleSendMessage()
+              }
+            }}
+            className="flex-1 bg-surface-container-low border-none focus-visible:ring-0 focus-visible:ring-offset-0 text-on-surface"
+          />
+          {isRecording ? (
+            <Button variant="ghost" size="icon" onClick={stopRecording}>
+              <StopCircle className="h-5 w-5 text-error" />
+            </Button>
+          ) : (
+            <Button variant="ghost" size="icon" onClick={startRecording}>
+              <Mic className="h-5 w-5 text-on-surface-variant" />
+            </Button>
+          )}
+          <Button size="icon" onClick={handleSendMessage} className="bg-primary text-on-primary hover:bg-primary/90">
+            <Send className="h-5 w-5" />
+          </Button>
         </div>
-      </div>
+        <audio ref={audioRef} controls className="hidden" />
+      </main>
     </div>
   )
 }

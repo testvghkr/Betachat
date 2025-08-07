@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { generateResponse } from "@/lib/google-ai"
 import { cookies } from "next/headers"
+import { getMessagesByChatId, createMessage } from '@/lib/db';
 
 function generateChatTitle(firstMessage: string): string {
   // Haal de eerste zin eruit (tot de eerste punt, vraagteken of uitroepteken)
@@ -58,12 +59,7 @@ export async function GET(request: NextRequest, { params }: { params: { chatId: 
     }
 
     console.log("Fetching messages for chat:", params.chatId)
-    const messages = await prisma.message.findMany({
-      where: {
-        chatId: params.chatId,
-      },
-      orderBy: { createdAt: "asc" },
-    })
+    const messages = await getMessagesByChatId(params.chatId);
 
     console.log("Messages found:", messages.length)
     return NextResponse.json(messages)
@@ -154,15 +150,7 @@ export async function POST(request: NextRequest, { params }: { params: { chatId:
     }
 
     console.log("Creating user message in database")
-    const userMessage = await prisma.message.create({
-      data: {
-        content,
-        role: "user",
-        chatId: params.chatId,
-        fileUrl,
-        fileName,
-      },
-    })
+    const userMessage = await createMessage(params.chatId, "user", content);
 
     console.log("User message created:", userMessage.id)
 
@@ -188,10 +176,7 @@ export async function POST(request: NextRequest, { params }: { params: { chatId:
     }
 
     console.log("Fetching all messages for context")
-    const messages = await prisma.message.findMany({
-      where: { chatId: params.chatId },
-      orderBy: { createdAt: "asc" },
-    })
+    const messages = await getMessagesByChatId(params.chatId);
 
     console.log("Generating AI response")
 
@@ -210,13 +195,7 @@ export async function POST(request: NextRequest, { params }: { params: { chatId:
     const aiResponse = await generateResponse(contextMessages)
 
     console.log("Creating AI message in database")
-    const aiMessage = await prisma.message.create({
-      data: {
-        content: aiResponse,
-        role: "assistant",
-        chatId: params.chatId,
-      },
-    })
+    const aiMessage = await createMessage(params.chatId, "assistant", aiResponse);
 
     console.log("AI message created:", aiMessage.id)
 
@@ -227,7 +206,7 @@ export async function POST(request: NextRequest, { params }: { params: { chatId:
     })
 
     console.log("Message handling complete")
-    return NextResponse.json({ userMessage, aiMessage })
+    return NextResponse.json({ userMessage, aiMessage }, { status: 201 });
   } catch (error) {
     console.error("Post message error:", error)
     return NextResponse.json(

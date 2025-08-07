@@ -2,393 +2,153 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Material 3 Design System Variables */
-:root {
-  /* Primary Colors - QRP Purple */
-  --md-sys-color-primary: 103 80 164;
-  --md-sys-color-on-primary: 255 255 255;
-  --md-sys-color-primary-container: 234 221 255;
-  --md-sys-color-on-primary-container: 33 0 93;
-
-  /* Secondary Colors */
-  --md-sys-color-secondary: 98 91 113;
-  --md-sys-color-on-secondary: 255 255 255;
-  --md-sys-color-secondary-container: 232 222 248;
-  --md-sys-color-on-secondary-container: 30 25 43;
-
-  /* Tertiary Colors - QRP Orange */
-  --md-sys-color-tertiary: 249 115 22;
-  --md-sys-color-on-tertiary: 255 255 255;
-  --md-sys-color-tertiary-container: 255 237 213;
-  --md-sys-color-on-tertiary-container: 124 45 0;
-
-  /* Error Colors */
-  --md-sys-color-error: 186 26 26;
-  --md-sys-color-on-error: 255 255 255;
-  --md-sys-color-error-container: 255 218 214;
-  --md-sys-color-on-error-container: 65 0 2;
-
-  /* Surface Colors */
-  --md-sys-color-surface: 255 251 255;
-  --md-sys-color-on-surface: 29 27 32;
-  --md-sys-color-surface-variant: 231 224 236;
-  --md-sys-color-on-surface-variant: 73 69 78;
-  --md-sys-color-surface-container-lowest: 255 255 255;
-  --md-sys-color-surface-container-low: 247 242 250;
-  --md-sys-color-surface-container: 243 237 247;
-  --md-sys-color-surface-container-high: 236 230 240;
-  --md-sys-color-surface-container-highest: 230 224 233;
-
-  /* Outline Colors */
-  --md-sys-color-outline: 121 116 126;
-  --md-sys-color-outline-variant: 202 196 208;
-
-  /* Background */
-  --md-sys-color-background: 255 251 255;
-  --md-sys-color-on-background: 29 27 32;
-
-  /* Inverse Colors */
-  --md-sys-color-inverse-surface: 49 48 51;
-  --md-sys-color-inverse-on-surface: 244 239 244;
-  --md-sys-color-inverse-primary: 208 188 255;
-
-  /* Shadow & Scrim */
-  --md-sys-color-shadow: 0 0 0;
-  --md-sys-color-scrim: 0 0 0;
-}
-
-/* Dark theme */
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Primary Colors - QRP Purple Dark */
-    --md-sys-color-primary: 208 188 255;
-    --md-sys-color-on-primary: 55 30 115;
-    --md-sys-color-primary-container: 79 55 139;
-    --md-sys-color-on-primary-container: 234 221 255;
-
-    /* Secondary Colors Dark */
-    --md-sys-color-secondary: 204 194 220;
-    --md-sys-color-on-secondary: 51 45 65;
-    --md-sys-color-secondary-container: 74 68 88;
-    --md-sys-color-on-secondary-container: 232 222 248;
-
-    /* Tertiary Colors - QRP Orange Dark */
-    --md-sys-color-tertiary: 255 183 77;
-    --md-sys-color-on-tertiary: 124 45 0;
-    --md-sys-color-tertiary-container: 186 69 0;
-    --md-sys-color-on-tertiary-container: 255 237 213;
-
-    /* Error Colors Dark */
-    --md-sys-color-error: 255 180 171;
-    --md-sys-color-on-error: 105 0 5;
-    --md-sys-color-error-container: 147 0 10;
-    --md-sys-color-on-error-container: 255 218 214;
-
-    /* Surface Colors Dark */
-    --md-sys-color-surface: 16 14 19;
-    --md-sys-color-on-surface: 230 225 229;
-    --md-sys-color-surface-variant: 73 69 78;
-    --md-sys-color-on-surface-variant: 202 196 208;
-    --md-sys-color-surface-container-lowest: 10 9 13;
-    --md-sys-color-surface-container-low: 24 23 27;
-    --md-sys-color-surface-container: 28 27 31;
-    --md-sys-color-surface-container-high: 38 37 41;
-    --md-sys-color-surface-container-highest: 49 48 51;
-
-    /* Outline Colors Dark */
-    --md-sys-color-outline: 147 143 153;
-    --md-sys-color-outline-variant: 73 69 78;
-
-    /* Background Dark */
-    --md-sys-color-background: 16 14 19;
-    --md-sys-color-on-background: 230 225 229;
-
-    /* Inverse Colors Dark */
-    --md-sys-color-inverse-surface: 230 225 229;
-    --md-sys-color-inverse-on-surface: 49 48 51;
-    --md-sys-color-inverse-primary: 103 80 164;
-  }
-}
-
-/* Base styles */
 @layer base {
-  * {
-    @apply border-border;
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 222.2 47.4% 11.2%; /* QRP Purple: #6750a4 */
+    --primary-foreground: 210 20% 98%;
+
+    --secondary: 210 40% 96.1%; /* QRP Orange: #f97316 */
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 20% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+
+    --radius: 0.5rem;
+
+    /* Material 3 Color Palette (QRP Theme) */
+    --md-sys-color-primary: 100 100% 100%; /* White for text on primary */
+    --md-sys-color-on-primary: 270 50% 30%; /* Darker purple for text on primary */
+    --md-sys-color-primary-container: 270 50% 60%; /* Lighter purple */
+    --md-sys-color-on-primary-container: 270 50% 10%; /* Even darker purple */
+    --md-sys-color-secondary: 30 100% 50%; /* Orange */
+    --md-sys-color-on-secondary: 0 0% 100%; /* White for text on secondary */
+    --md-sys-color-secondary-container: 30 100% 70%; /* Lighter orange */
+    --md-sys-color-on-secondary-container: 30 100% 20%; /* Darker orange */
+    --md-sys-color-tertiary: 200 50% 50%; /* Example tertiary color */
+    --md-sys-color-on-tertiary: 0 0% 100%;
+    --md-sys-color-tertiary-container: 200 50% 80%;
+    --md-sys-color-on-tertiary-container: 200 50% 20%;
+    --md-sys-color-error: 0 80% 50%;
+    --md-sys-color-on-error: 0 0% 100%;
+    --md-sys-color-error-container: 0 80% 90%;
+    --md-sys-color-on-error-container: 0 80% 20%;
+    --md-sys-color-outline: 210 10% 70%;
+    --md-sys-color-background: 0 0% 100%;
+    --md-sys-color-on-background: 210 10% 10%;
+    --md-sys-color-surface: 0 0% 100%;
+    --md-sys-color-on-surface: 210 10% 10%;
+    --md-sys-color-surface-variant: 210 10% 90%;
+    --md-sys-color-on-surface-variant: 210 10% 30%;
+    --md-sys-color-inverse-surface: 210 10% 20%;
+    --md-sys-color-inverse-on-surface: 0 0% 100%;
+    --md-sys-color-inverse-primary: 270 50% 70%;
+    --md-sys-color-shadow: 0 0% 0%;
+    --md-sys-color-surface-tint: 270 50% 50%;
+    --md-sys-color-outline-variant: 210 10% 80%;
+    --md-sys-color-scrim: 0 0% 0%;
+    --md-sys-color-surface-container-lowest: 0 0% 100%;
+    --md-sys-color-surface-container-low: 210 5% 98%;
+    --md-sys-color-surface-container: 210 5% 96%;
+    --md-sys-color-surface-container-high: 210 5% 94%;
+    --md-sys-color-surface-container-highest: 210 5% 92%;
   }
 
-  body {
-    @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-  }
-}
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 20% 98%;
 
-/* Material 3 Typography Scale */
-@layer components {
-  .md-display-large {
-    font-size: 57px;
-    line-height: 64px;
-    font-weight: 400;
-    letter-spacing: -0.25px;
-  }
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 20% 98%;
 
-  .md-display-medium {
-    font-size: 45px;
-    line-height: 52px;
-    font-weight: 400;
-    letter-spacing: 0px;
-  }
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 20% 98%;
 
-  .md-display-small {
-    font-size: 36px;
-    line-height: 44px;
-    font-weight: 400;
-    letter-spacing: 0px;
-  }
+    --primary: 210 20% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
 
-  .md-headline-large {
-    font-size: 32px;
-    line-height: 40px;
-    font-weight: 400;
-    letter-spacing: 0px;
-  }
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 20% 98%;
 
-  .md-headline-medium {
-    font-size: 28px;
-    line-height: 36px;
-    font-weight: 400;
-    letter-spacing: 0px;
-  }
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
 
-  .md-headline-small {
-    font-size: 24px;
-    line-height: 32px;
-    font-weight: 400;
-    letter-spacing: 0px;
-  }
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 20% 98%;
 
-  .md-title-large {
-    font-size: 22px;
-    line-height: 28px;
-    font-weight: 400;
-    letter-spacing: 0px;
-  }
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 20% 98%;
 
-  .md-title-medium {
-    font-size: 16px;
-    line-height: 24px;
-    font-weight: 500;
-    letter-spacing: 0.15px;
-  }
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 210 20% 98%;
 
-  .md-title-small {
-    font-size: 14px;
-    line-height: 20px;
-    font-weight: 500;
-    letter-spacing: 0.1px;
-  }
-
-  .md-label-large {
-    font-size: 14px;
-    line-height: 20px;
-    font-weight: 500;
-    letter-spacing: 0.1px;
-  }
-
-  .md-label-medium {
-    font-size: 12px;
-    line-height: 16px;
-    font-weight: 500;
-    letter-spacing: 0.5px;
-  }
-
-  .md-label-small {
-    font-size: 11px;
-    line-height: 16px;
-    font-weight: 500;
-    letter-spacing: 0.5px;
-  }
-
-  .md-body-large {
-    font-size: 16px;
-    line-height: 24px;
-    font-weight: 400;
-    letter-spacing: 0.5px;
-  }
-
-  .md-body-medium {
-    font-size: 14px;
-    line-height: 20px;
-    font-weight: 400;
-    letter-spacing: 0.25px;
-  }
-
-  .md-body-small {
-    font-size: 12px;
-    line-height: 16px;
-    font-weight: 400;
-    letter-spacing: 0.4px;
-  }
-
-  /* Material 3 Components */
-  .md-card {
-    background-color: rgb(var(--md-sys-color-surface-container));
-    color: rgb(var(--md-sys-color-on-surface));
-    border-radius: 12px;
-    box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.3), 0px 1px 3px 1px rgba(0, 0, 0, 0.15);
-    border: 1px solid rgb(var(--md-sys-color-outline-variant));
-    transition: box-shadow 200ms cubic-bezier(0.2, 0, 0, 1);
-  }
-
-  .md-card:hover {
-    box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.3), 0px 2px 6px 2px rgba(0, 0, 0, 0.15);
-  }
-
-  .md-filled-button {
-    background-color: rgb(var(--md-sys-color-primary));
-    color: rgb(var(--md-sys-color-on-primary));
-    border-radius: 20px;
-    padding: 10px 24px;
-    font-weight: 500;
-    font-size: 14px;
-    line-height: 20px;
-    letter-spacing: 0.1px;
-    border: none;
-    transition: all 200ms cubic-bezier(0.2, 0, 0, 1);
-  }
-
-  .md-filled-button:hover {
-    box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.3), 0px 1px 3px 1px rgba(0, 0, 0, 0.15);
-  }
-
-  .md-text-button {
-    background-color: transparent;
-    color: rgb(var(--md-sys-color-primary));
-    border-radius: 20px;
-    padding: 10px 12px;
-    font-weight: 500;
-    font-size: 14px;
-    line-height: 20px;
-    letter-spacing: 0.1px;
-    border: none;
-    transition: all 200ms cubic-bezier(0.2, 0, 0, 1);
-  }
-
-  .md-text-button:hover {
-    background-color: rgba(var(--md-sys-color-primary), 0.08);
-  }
-
-  .md-fab {
-    background-color: rgb(var(--md-sys-color-primary-container));
-    color: rgb(var(--md-sys-color-on-primary-container));
-    border-radius: 16px;
-    padding: 16px;
-    border: none;
-    box-shadow: 0px 3px 3px -2px rgba(0, 0, 0, 0.2), 0px 3px 4px 0px rgba(0, 0, 0, 0.14), 0px 1px 8px 0px rgba(0, 0, 0, 0.12);
-    transition: all 200ms cubic-bezier(0.2, 0, 0, 1);
-  }
-
-  .md-fab:hover {
-    box-shadow: 0px 2px 4px -1px rgba(0, 0, 0, 0.2), 0px 4px 5px 0px rgba(0, 0, 0, 0.14), 0px 1px 10px 0px rgba(0, 0, 0, 0.12);
-  }
-
-  .md-input {
-    background-color: rgb(var(--md-sys-color-surface-container-highest));
-    color: rgb(var(--md-sys-color-on-surface));
-    border: 1px solid rgb(var(--md-sys-color-outline));
-    border-radius: 4px;
-    padding: 16px;
-    font-size: 16px;
-    line-height: 24px;
-    letter-spacing: 0.5px;
-    transition: all 200ms cubic-bezier(0.2, 0, 0, 1);
-  }
-
-  .md-input:focus {
-    border-color: rgb(var(--md-sys-color-primary));
-    outline: none;
-  }
-
-  .md-input::placeholder {
-    color: rgb(var(--md-sys-color-on-surface-variant));
+    /* Material 3 Color Palette (QRP Theme) - Dark Mode */
+    --md-sys-color-primary: 270 50% 70%; /* Lighter purple for primary */
+    --md-sys-color-on-primary: 270 50% 10%; /* Darker text on primary */
+    --md-sys-color-primary-container: 270 50% 20%; /* Darker purple */
+    --md-sys-color-on-primary-container: 270 50% 90%; /* Lighter text on primary container */
+    --md-sys-color-secondary: 30 100% 70%; /* Lighter orange */
+    --md-sys-color-on-secondary: 30 100% 10%; /* Darker text on secondary */
+    --md-sys-color-secondary-container: 30 100% 20%; /* Darker orange */
+    --md-sys-color-on-secondary-container: 30 100% 90%; /* Lighter text on secondary container */
+    --md-sys-color-tertiary: 200 50% 70%;
+    --md-sys-color-on-tertiary: 200 50% 10%;
+    --md-sys-color-tertiary-container: 200 50% 20%;
+    --md-sys-color-on-tertiary-container: 200 50% 90%;
+    --md-sys-color-error: 0 80% 70%;
+    --md-sys-color-on-error: 0 80% 10%;
+    --md-sys-color-error-container: 0 80% 20%;
+    --md-sys-color-on-error-container: 0 80% 90%;
+    --md-sys-color-outline: 210 10% 40%;
+    --md-sys-color-background: 210 10% 5%;
+    --md-sys-color-on-background: 210 10% 95%;
+    --md-sys-color-surface: 210 10% 5%;
+    --md-sys-color-on-surface: 210 10% 95%;
+    --md-sys-color-surface-variant: 210 10% 20%;
+    --md-sys-color-on-surface-variant: 210 10% 70%;
+    --md-sys-color-inverse-surface: 210 10% 90%;
+    --md-sys-color-inverse-on-surface: 210 10% 10%;
+    --md-sys-color-inverse-primary: 270 50% 30%;
+    --md-sys-color-shadow: 0 0% 0%;
+    --md-sys-color-surface-tint: 270 50% 50%;
+    --md-sys-color-outline-variant: 210 10% 30%;
+    --md-sys-color-scrim: 0 0% 0%;
+    --md-sys-color-surface-container-lowest: 210 10% 2%;
+    --md-sys-color-surface-container-low: 210 10% 7%;
+    --md-sys-color-surface-container: 210 10% 10%;
+    --md-sys-color-surface-container-high: 210 10% 15%;
+    --md-sys-color-surface-container-highest: 210 10% 20%;
   }
 }
 
-/* Custom animations */
-@layer utilities {
-  .animate-fade-in {
-    animation: fadeIn 0.3s ease-out;
-  }
-
-  .animate-bounce-gentle {
-    animation: bounceGentle 1.4s ease-in-out infinite;
-  }
-
-  .animate-slide-up {
-    animation: slideUp 0.3s ease-out;
-  }
-
-  .animate-scale-in {
-    animation: scaleIn 0.2s ease-out;
-  }
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes bounceGentle {
-    0%, 80%, 100% {
-      transform: scale(0);
-    }
-    40% {
-      transform: scale(1);
-    }
-  }
-
-  @keyframes slideUp {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes scaleIn {
-    from {
-      opacity: 0;
-      transform: scale(0.95);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
+.glass-surface {
+  background-color: rgba(255, 255, 255, 0.05); /* Light glass effect */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: rgb(var(--md-sys-color-surface-container));
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgb(var(--md-sys-color-outline-variant));
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgb(var(--md-sys-color-outline));
+.dark .glass-surface {
+  background-color: rgba(0, 0, 0, 0.2); /* Dark glass effect */
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }

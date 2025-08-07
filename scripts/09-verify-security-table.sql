@@ -58,3 +58,6 @@ FROM "SecurityQuestion"
 WHERE "isActive" = TRUE;
 
 SELECT '✅ SecurityQuestion tabel verificatie voltooid!' as status;
+
+-- This script is now redundant as security questions are removed.
+-- Keeping it for historical context if needed.

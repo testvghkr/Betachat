@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: true,
+  swcMinify: true,
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -13,7 +15,21 @@ const nextConfig = {
   },
   images: {
     domains: ['localhost'],
-    unoptimized: true
+    unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.vercel.app',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.v0.dev',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.blob.vercel-storage.com',
+      },
+    ],
   },
   async headers() {
     return [
@@ -43,4 +59,4 @@ const nextConfig = {
   }
 }
 
-export default nextConfig
+export default nextConfig;

@@ -48,3 +48,7 @@ CREATE INDEX "Message_createdAt_idx" ON "Message"("createdAt");
 
 -- Verify tables were created
 SELECT 'Tables created successfully!' as status;
+
+-- This script is now redundant as setup-database.sql handles table creation.
+-- Keeping it for historical context if needed, but it won't be executed separately.
+-- All table creation is now handled by scripts/setup-database.sql
