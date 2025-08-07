@@ -1,263 +1,278 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Image from "next/image"
+import { useAuth } from "@/lib/auth-context"
+import { Eye, EyeOff, Loader2 } from 'lucide-react'
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [name, setName] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [isLogin, setIsLogin] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [saveChats, setSaveChats] = useState(true)
+  
+  // Login form
+  const [loginEmail, setLoginEmail] = useState("")
+  const [loginPassword, setLoginPassword] = useState("")
+  
+  // Register form
+  const [registerName, setRegisterName] = useState("")
+  const [registerEmail, setRegisterEmail] = useState("")
+  const [registerPassword, setRegisterPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  
+  const router = useRouter()
+  const { login } = useAuth()
 
-  const handleSubmit = async (e: any) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
+    setIsLoading(true)
     setError("")
-    setSuccess("")
 
     try {
-      if (isLogin) {
-        // Login
-        console.log("Attempting login...")
-        const response = await fetch("/api/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        })
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: loginEmail,
+          password: loginPassword,
+        }),
+      })
 
-        console.log("Login response status:", response.status)
-        const data = await response.json()
-        console.log("Login response data:", data)
+      const data = await response.json()
 
-        if (response.ok && data.success) {
-          setSuccess("Succesvol ingelogd! Doorverwijzen...")
-          console.log("Login successful, redirecting...")
-
-          // Korte timeout voor betere UX
-          setTimeout(() => {
-            window.location.href = "/chat"
-          }, 1000)
-        } else {
-          setError(data.error || "Login failed")
-        }
+      if (response.ok) {
+        login(data.user)
+        router.push("/")
       } else {
-        // Register
-        if (password !== confirmPassword) {
-          setError("Wachtwoorden komen niet overeen")
-          setLoading(false)
-          return
-        }
-
-        if (password.length < 6) {
-          setError("Wachtwoord moet minimaal 6 karakters zijn")
-          setLoading(false)
-          return
-        }
-
-        console.log("Attempting registration...")
-        const response = await fetch("/api/auth/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email,
-            name,
-            password,
-          }),
-        })
-
-        console.log("Register response status:", response.status)
-        const data = await response.json()
-        console.log("Register response data:", data)
-
-        if (response.ok && data.success) {
-          setSuccess("Account succesvol aangemaakt! Doorverwijzen...")
-          console.log("Registration successful, redirecting...")
-
-          // Korte timeout voor betere UX
-          setTimeout(() => {
-            window.location.href = "/chat"
-          }, 1000)
-        } else {
-          if (data.details) {
-            setError(`${data.error}: ${data.details}`)
-          } else {
-            setError(data.error || "Registratie mislukt")
-          }
-        }
+        setError(data.error || "Inloggen mislukt")
       }
     } catch (error) {
-      console.error("Request error:", error)
-      setError("Er is een netwerkfout opgetreden")
+      setError("Er is een fout opgetreden")
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
   }
 
-  const handleGuest = async () => {
-    setLoading(true)
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
     setError("")
     setSuccess("")
 
-    console.log("Attempting guest login...")
+    if (registerPassword !== confirmPassword) {
+      setError("Wachtwoorden komen niet overeen")
+      setIsLoading(false)
+      return
+    }
 
+    if (registerPassword.length < 6) {
+      setError("Wachtwoord moet minimaal 6 karakters zijn")
+      setIsLoading(false)
+      return
+    }
+
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: registerName,
+          email: registerEmail,
+          password: registerPassword,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setSuccess("Account succesvol aangemaakt!")
+        login(data.user)
+        setTimeout(() => {
+          router.push("/")
+        }, 1000)
+      } else {
+        setError(data.error || "Registratie mislukt")
+      }
+    } catch (error) {
+      setError("Er is een fout opgetreden")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleGuestLogin = async () => {
+    setIsLoading(true)
     try {
       const response = await fetch("/api/auth/guest", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
       })
 
-      console.log("Guest response status:", response.status)
       const data = await response.json()
-      console.log("Guest response data:", data)
 
-      if (response.ok && data.success) {
-        setSuccess("Gastmodus geactiveerd! Doorverwijzen...")
-        console.log("Guest login successful, redirecting...")
-
-        // Korte timeout voor betere UX
-        setTimeout(() => {
-          window.location.href = "/chat"
-        }, 1000)
+      if (response.ok) {
+        login(data.user)
+        router.push("/")
       } else {
         setError("Gastmodus mislukt")
       }
     } catch (error) {
-      console.error("Guest error:", error)
       setError("Er is een fout opgetreden")
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-gray-800 border border-gray-700 rounded-lg p-6">
-        <div className="text-center mb-6">
-          <Image src="/qrp-logo.png" alt="QRP Logo" width={120} height={80} className="object-contain mx-auto mb-4" />
-          <h1 className="text-white text-2xl font-bold">Welkom bij QRP</h1>
-          <p className="text-orange-400 text-sm mt-2">🚀 v2.0 is nu live!</p>
-        </div>
-
-        {/* Tab buttons */}
-        <div className="flex mb-6">
-          <button
-            onClick={() => setIsLogin(true)}
-            className={`flex-1 py-2 px-4 rounded-l transition-colors ${
-              isLogin
-                ? "bg-gradient-to-r from-orange-500 to-blue-500 text-white"
-                : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-            }`}
-          >
-            Inloggen
-          </button>
-          <button
-            onClick={() => setIsLogin(false)}
-            className={`flex-1 py-2 px-4 rounded-r transition-colors ${
-              !isLogin
-                ? "bg-gradient-to-r from-orange-500 to-blue-500 text-white"
-                : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-            }`}
-          >
-            Registreren
-          </button>
-        </div>
-
-        {error && <div className="mb-4 p-3 bg-red-900 border border-red-700 rounded text-red-200 text-sm">{error}</div>}
-        {success && (
-          <div className="mb-4 p-3 bg-green-900 border border-green-700 rounded text-green-200 text-sm">{success}</div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="email"
-            placeholder="Email adres"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="w-full p-3 bg-gray-700 border border-gray-600 rounded text-white placeholder-gray-400 focus:border-orange-500 focus:outline-none transition-colors"
-          />
-
-          {!isLogin && (
-            <input
-              type="text"
-              placeholder="Volledige naam"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className="w-full p-3 bg-gray-700 border border-gray-600 rounded text-white placeholder-gray-400 focus:border-orange-500 focus:outline-none transition-colors"
-            />
-          )}
-
-          <input
-            type="password"
-            placeholder="Wachtwoord"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="w-full p-3 bg-gray-700 border border-gray-600 rounded text-white placeholder-gray-400 focus:border-orange-500 focus:outline-none transition-colors"
-          />
-
-          {!isLogin && (
-            <input
-              type="password"
-              placeholder="Bevestig wachtwoord"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              className="w-full p-3 bg-gray-700 border border-gray-600 rounded text-white placeholder-gray-400 focus:border-orange-500 focus:outline-none transition-colors"
-            />
-          )}
-
-          {/* Chat opslaan keuze */}
-          <div className="bg-gray-700 p-3 rounded border border-gray-600">
-            <label className="flex items-center space-x-3">
-              <input
-                type="checkbox"
-                checked={saveChats}
-                onChange={(e) => setSaveChats(e.target.checked)}
-                className="w-4 h-4 text-orange-500 bg-gray-600 border-gray-500 rounded focus:ring-orange-500"
-              />
-              <span className="text-white text-sm">💾 Chats opslaan en synchroniseren tussen apparaten</span>
-            </label>
-            <p className="text-xs text-gray-400 mt-1">
-              {saveChats
-                ? "Je chats worden veilig opgeslagen en zijn beschikbaar op al je apparaten"
-                : "Je chats worden alleen lokaal opgeslagen en niet gesynchroniseerd"}
-            </p>
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <Card className="w-full max-w-md md-card">
+        <CardHeader className="text-center">
+          <Image src="/qrp-logo.png" alt="QRP Logo" width={120} height={80} className="mx-auto mb-4" />
+          <CardTitle className="md-headline-small">Welkom bij QRP Chat</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="login" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="login">Inloggen</TabsTrigger>
+              <TabsTrigger value="register">Registreren</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="login" className="space-y-4">
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div>
+                  <Input
+                    type="email"
+                    placeholder="Email"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    required
+                    className="md-input"
+                  />
+                </div>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Wachtwoord"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    required
+                    className="md-input pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-2 top-1/2 -translate-y-1/2"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </Button>
+                </div>
+                <Button type="submit" className="w-full md-filled-button" disabled={isLoading}>
+                  {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                  Inloggen
+                </Button>
+              </form>
+            </TabsContent>
+            
+            <TabsContent value="register" className="space-y-4">
+              <form onSubmit={handleRegister} className="space-y-4">
+                <div>
+                  <Input
+                    type="text"
+                    placeholder="Naam"
+                    value={registerName}
+                    onChange={(e) => setRegisterName(e.target.value)}
+                    required
+                    className="md-input"
+                  />
+                </div>
+                <div>
+                  <Input
+                    type="email"
+                    placeholder="Email"
+                    value={registerEmail}
+                    onChange={(e) => setRegisterEmail(e.target.value)}
+                    required
+                    className="md-input"
+                  />
+                </div>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Wachtwoord"
+                    value={registerPassword}
+                    onChange={(e) => setRegisterPassword(e.target.value)}
+                    required
+                    className="md-input pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-2 top-1/2 -translate-y-1/2"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </Button>
+                </div>
+                <div>
+                  <Input
+                    type="password"
+                    placeholder="Bevestig wachtwoord"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    className="md-input"
+                  />
+                </div>
+                <Button type="submit" className="w-full md-filled-button" disabled={isLoading}>
+                  {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                  Registreren
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
+          
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-outline-variant" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">Of</span>
+              </div>
+            </div>
+            
+            <Button 
+              onClick={handleGuestLogin} 
+              variant="outline" 
+              className="w-full mt-4"
+              disabled={isLoading}
+            >
+              {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Doorgaan als gast
+            </Button>
           </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full p-3 bg-gradient-to-r from-orange-500 to-blue-500 hover:from-orange-600 hover:to-blue-600 rounded text-white font-medium disabled:opacity-50 transition-all"
-          >
-            {loading ? "Bezig..." : isLogin ? "Inloggen" : "Account aanmaken"}
-          </button>
-        </form>
-
-        <div className="mt-6 pt-4 border-t border-gray-700">
-          <button
-            onClick={handleGuest}
-            disabled={loading}
-            className="w-full p-3 bg-transparent border border-gray-600 hover:border-orange-500 rounded text-gray-300 hover:text-white font-medium disabled:opacity-50 transition-all"
-          >
-            🚀 Zonder account verdergaan (tijdelijk)
-          </button>
-          <p className="text-xs text-gray-500 text-center mt-2">
-            Chats worden niet opgeslagen en verdwijnen na sluiten browser
-          </p>
-        </div>
-
-        <div className="mt-4 text-xs text-center">
-          <p className="text-orange-400">🎉 QRP v2.0 Launch Special</p>
-          <p className="text-gray-500">Geen email verificatie nodig • Direct aan de slag</p>
-        </div>
-      </div>
+          
+          {error && (
+            <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+              <p className="text-destructive text-sm">{error}</p>
+            </div>
+          )}
+          
+          {success && (
+            <div className="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+              <p className="text-green-600 text-sm">{success}</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

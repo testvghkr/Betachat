@@ -1,14 +1,5 @@
-const CACHE_NAME = "qrp-chatbot-v2"
-const urlsToCache = [
-  "/",
-  "/login",
-  "/chat",
-  "/account",
-  "/qrp-logo.png",
-  "/icon-192.png",
-  "/icon-512.png",
-  "/manifest.json",
-]
+const CACHE_NAME = "qrp-v2.0.0"
+const urlsToCache = ["/", "/manifest.json", "/icon-192.png", "/icon-512.png"]
 
 // Install event - cache resources
 self.addEventListener("install", (event) => {
@@ -23,6 +14,9 @@ self.addEventListener("install", (event) => {
       .then(() => {
         console.log("Service Worker: Installed successfully")
         return self.skipWaiting()
+      })
+      .catch((error) => {
+        console.log("Service Worker: Cache failed", error)
       }),
   )
 })
@@ -57,8 +51,12 @@ self.addEventListener("fetch", (event) => {
     return
   }
 
-  // Skip API calls for real-time functionality
-  if (event.request.url.includes("/api/")) {
+  // Skip API calls and external resources
+  if (
+    event.request.url.includes("/api/") ||
+    event.request.url.includes("chrome-extension://") ||
+    !event.request.url.startsWith(self.location.origin)
+  ) {
     return
   }
 
@@ -89,26 +87,11 @@ self.addEventListener("fetch", (event) => {
 
           return response
         })
-        .catch(() => {
-          // If network fails, try to serve a fallback page
-          if (event.request.destination === "document") {
-            return caches.match("/login")
-          }
+        .catch((error) => {
+          console.log("Service Worker: Fetch failed:", error)
+          // Return a basic offline page if available
+          return caches.match("/")
         })
     }),
   )
-})
-
-// Background sync for offline messages (future enhancement)
-self.addEventListener("sync", (event) => {
-  if (event.tag === "background-sync") {
-    console.log("Service Worker: Background sync triggered")
-    // Here we could sync offline messages when connection is restored
-  }
-})
-
-// Push notifications (future enhancement)
-self.addEventListener("push", (event) => {
-  console.log("Service Worker: Push notification received")
-  // Handle push notifications here
 })

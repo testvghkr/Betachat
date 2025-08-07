@@ -7,11 +7,6 @@ export async function POST(request: NextRequest) {
   console.log("=== REGISTER API CALLED ===")
 
   try {
-    // Test database connection first
-    console.log("🔄 Testing database connection...")
-    await prisma.$connect()
-    console.log("✅ Database connected")
-
     const body = await request.json()
     console.log("📝 Register request:", {
       email: body.email,
@@ -29,18 +24,6 @@ export async function POST(request: NextRequest) {
     if (password.length < 6) {
       console.log("❌ Password too short")
       return NextResponse.json({ error: "Wachtwoord moet minimaal 6 karakters zijn" }, { status: 400 })
-    }
-
-    // Check if DATABASE_URL is set
-    if (!process.env.DATABASE_URL) {
-      console.log("❌ DATABASE_URL not configured")
-      return NextResponse.json(
-        {
-          error: "Database niet geconfigureerd",
-          details: "DATABASE_URL environment variable is missing",
-        },
-        { status: 500 },
-      )
     }
 
     // Check if user already exists
@@ -96,32 +79,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("❌ Register API error:", error)
 
-    // Provide more specific error messages
-    if (error instanceof Error) {
-      if (error.message.includes("connect")) {
-        return NextResponse.json(
-          {
-            error: "Database verbinding mislukt",
-            details: "Kan geen verbinding maken met de database",
-            suggestion: "Controleer of DATABASE_URL correct is ingesteld",
-          },
-          { status: 500 },
-        )
-      }
-
-      return NextResponse.json(
-        {
-          error: "Server error",
-          details: error.message,
-        },
-        { status: 500 },
-      )
-    }
-
     return NextResponse.json(
       {
-        error: "Server error",
-        details: "Unknown error during registration",
+        error: "Server error tijdens registratie",
+        details: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 },
     )
