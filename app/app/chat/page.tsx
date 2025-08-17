@@ -2,27 +2,13 @@
 
 import type React from "react"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import {
-  Send,
-  Mic,
-  MicOff,
-  Volume2,
-  Menu,
-  User,
-  MessageSquare,
-  Sparkles,
-  Upload,
-  Trash2,
-  Copy,
-  ArrowLeft,
-  Download,
-} from "lucide-react"
-import { cn, formatTime, generateId } from "@/lib/utils"
+import { MessageSquare, Send, ArrowLeft, Bot, User, Trash2, Copy, Check, Sparkles, Brain, History } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
@@ -30,52 +16,26 @@ import { useRouter } from "next/navigation"
 interface Message {
   id: string
   content: string
-  role: "user" | "assistant"
+  sender: "user" | "assistant"
   timestamp: Date
-  fileUrl?: string
-  fileName?: string
 }
 
-interface ChatHistory {
+interface ChatSession {
   id: string
   title: string
   messages: Message[]
-  createdAt: Date
+  timestamp: Date
 }
 
 export default function ChatPage() {
   const { user, loading } = useAuth()
   const router = useRouter()
-  const [messages, setMessages] = useState<Message[]>([])
-  const [input, setInput] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [isListening, setIsListening] = useState(false)
-  const [isSpeaking, setIsSpeaking] = useState(false)
-  const [chatHistory, setChatHistory] = useState<ChatHistory[]>([])
-  const [currentChatId, setCurrentChatId] = useState<string | null>(null)
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-
+  const [message, setMessage] = useState("")
+  const [currentChat, setCurrentChat] = useState<ChatSession | null>(null)
+  const [chatHistory, setChatHistory] = useState<ChatSession[]>([])
+  const [isTyping, setIsTyping] = useState(false)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const recognitionRef = useRef<any>(null)
-
-  // Add activity logging function
-  const logActivity = (action: string) => {
-    if (!user) return
-
-    const activity = {
-      tool: "AI Chat",
-      action,
-      timestamp: new Date().toISOString(),
-    }
-
-    const existingLog = JSON.parse(localStorage.getItem(`activity_log_${user.id}`) || "[]")
-    existingLog.unshift(activity)
-
-    // Keep only last 50 activities
-    const trimmedLog = existingLog.slice(0, 50)
-    localStorage.setItem(`activity_log_${user.id}`, JSON.stringify(trimmedLog))
-  }
 
   useEffect(() => {
     if (!loading && !user) {
@@ -83,26 +43,15 @@ export default function ChatPage() {
       return
     }
 
-    scrollToBottom()
-  }, [messages, user, loading, router])
-
-  useEffect(() => {
     if (user) {
       loadChatHistory()
-      initializeSpeechRecognition()
-
-      // Add welcome message if no messages
-      if (messages.length === 0) {
-        const welcomeMessage: Message = {
-          id: generateId(),
-          content: `Hallo ${user.name}! 👋\n\nIk ben QRP, je persoonlijke AI-assistent. Ik kan je helpen met:\n\n• Vragen beantwoorden\n• Code schrijven en debuggen\n• Huiswerk en studie\n• Creatieve projecten\n• Problemen oplossen\n\nWaar kan ik je vandaag mee helpen?`,
-          role: "assistant",
-          timestamp: new Date(),
-        }
-        setMessages([welcomeMessage])
-      }
+      startNewChat()
     }
-  }, [user])
+  }, [user, loading, router])
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [currentChat?.messages])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -110,249 +59,197 @@ export default function ChatPage() {
 
   const loadChatHistory = () => {
     if (!user) return
-    const saved = localStorage.getItem(`qrp_chat_history_${user.id}`)
-    if (saved) {
-      const history = JSON.parse(saved).map((chat: any) => ({
-        ...chat,
-        createdAt: new Date(chat.createdAt),
-        messages: chat.messages.map((msg: any) => ({
-          ...msg,
-          timestamp: new Date(msg.timestamp),
-        })),
-      }))
-      setChatHistory(history)
-    }
+    const savedHistory = JSON.parse(localStorage.getItem(`qrp_chat_history_${user.id}`) || "[]")
+    const parsedHistory = savedHistory.map((chat: any) => ({
+      ...chat,
+      timestamp: new Date(chat.timestamp),
+      messages: chat.messages.map((msg: any) => ({
+        ...msg,
+        timestamp: new Date(msg.timestamp),
+      })),
+    }))
+    setChatHistory(parsedHistory)
   }
 
-  const saveChatHistory = (history: ChatHistory[]) => {
+  const saveChatHistory = (chats: ChatSession[]) => {
     if (!user) return
-    localStorage.setItem(`qrp_chat_history_${user.id}`, JSON.stringify(history))
-    setChatHistory(history)
-  }
-
-  const initializeSpeechRecognition = () => {
-    if (typeof window !== "undefined" && "webkitSpeechRecognition" in window) {
-      const recognition = new (window as any).webkitSpeechRecognition()
-      recognition.continuous = false
-      recognition.interimResults = false
-      recognition.lang = "nl-NL"
-
-      recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript
-        setInput(transcript)
-        setIsListening(false)
-      }
-
-      recognition.onerror = () => {
-        setIsListening(false)
-      }
-
-      recognition.onend = () => {
-        setIsListening(false)
-      }
-
-      recognitionRef.current = recognition
-    }
-  }
-
-  const startListening = () => {
-    if (recognitionRef.current && !isListening) {
-      setIsListening(true)
-      recognitionRef.current.start()
-    }
-  }
-
-  const stopListening = () => {
-    if (recognitionRef.current && isListening) {
-      recognitionRef.current.stop()
-      setIsListening(false)
-    }
-  }
-
-  const speak = (text: string) => {
-    if ("speechSynthesis" in window) {
-      const utterance = new SpeechSynthesisUtterance(text)
-      utterance.lang = "nl-NL"
-      utterance.rate = 0.9
-      utterance.pitch = 1
-
-      utterance.onstart = () => setIsSpeaking(true)
-      utterance.onend = () => setIsSpeaking(false)
-      utterance.onerror = () => setIsSpeaking(false)
-
-      speechSynthesis.speak(utterance)
-    }
-  }
-
-  const stopSpeaking = () => {
-    if ("speechSynthesis" in window) {
-      speechSynthesis.cancel()
-      setIsSpeaking(false)
-    }
-  }
-
-  const generateAIResponse = (userInput: string): string => {
-    const responses = [
-      `Bedankt voor je vraag, ${user?.name}! Over "${userInput}" kan ik je het volgende vertellen...`,
-      `Interessante vraag! Laat me je helpen met "${userInput}". Hier is wat ik weet...`,
-      `Hallo ${user?.name}! Voor "${userInput}" heb ik een uitgebreid antwoord...`,
-      `Geweldige vraag over "${userInput}"! Ik help je graag verder...`,
-    ]
-
-    const randomResponse = responses[Math.floor(Math.random() * responses.length)]
-
-    if (userInput.toLowerCase().includes("code") || userInput.toLowerCase().includes("programmeren")) {
-      return `${randomResponse}\n\nHier is een voorbeeld van hoe je dit zou kunnen aanpakken:\n\n\`\`\`javascript\nfunction example() {\n  console.log("Dit is een voorbeeld!");\n  return "Succes!";\n}\n\`\`\`\n\nHeb je nog specifieke vragen over programmeren?`
-    }
-
-    if (userInput.toLowerCase().includes("huiswerk") || userInput.toLowerCase().includes("leren")) {
-      return `${randomResponse}\n\nIk help je graag met je huiswerk! Hier zijn enkele tips:\n\n• Begin met het begrijpen van de hoofdconcepten\n• Maak aantekeningen van belangrijke punten\n• Oefen regelmatig met voorbeelden\n• Vraag om hulp als je vastloopt\n\nWat voor vak of onderwerp wil je bestuderen?`
-    }
-
-    return `${randomResponse}\n\nIk ben hier om je te helpen met allerlei vragen - van programmeren tot huiswerk maken, van creatieve projecten tot het oplossen van problemen. Vertel me meer over wat je precies wilt weten!\n\nAls je andere AI-tools wilt proberen, kijk dan eens naar de rekenmachine of document generator in je dashboard.`
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!input.trim() && !selectedFile) return
-
-    const userMessage: Message = {
-      id: generateId(),
-      content: input.trim() || `[Bestand: ${selectedFile?.name}]`,
-      role: "user",
-      timestamp: new Date(),
-      fileName: selectedFile?.name,
-    }
-
-    // Log activity
-    logActivity(`Bericht verzonden: ${userMessage.content.substring(0, 50)}...`)
-
-    const newMessages = [...messages, userMessage]
-    setMessages(newMessages)
-    setInput("")
-    setSelectedFile(null)
-    setIsLoading(true)
-
-    try {
-      // Simulate AI processing
-      await new Promise((resolve) => setTimeout(resolve, 1000 + Math.random() * 2000))
-
-      const aiResponse = generateAIResponse(userMessage.content)
-
-      const assistantMessage: Message = {
-        id: generateId(),
-        content: aiResponse,
-        role: "assistant",
-        timestamp: new Date(),
-      }
-
-      const finalMessages = [...newMessages, assistantMessage]
-      setMessages(finalMessages)
-
-      // Log AI response
-      logActivity("AI antwoord ontvangen")
-
-      // Save to chat history
-      saveCurrentChat(finalMessages)
-    } catch (error) {
-      console.error("Chat error:", error)
-      const errorMessage: Message = {
-        id: generateId(),
-        content: "Sorry, er ging iets mis. Probeer het opnieuw.",
-        role: "assistant",
-        timestamp: new Date(),
-      }
-      setMessages([...newMessages, errorMessage])
-      logActivity("Chat fout opgetreden")
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const saveCurrentChat = (currentMessages: Message[]) => {
-    if (currentMessages.length === 0) return
-
-    const chatTitle = currentMessages.find((m) => m.role === "user")?.content.substring(0, 50) + "..." || "Nieuwe Chat"
-
-    const updatedHistory = [...chatHistory]
-
-    if (currentChatId) {
-      const chatIndex = updatedHistory.findIndex((chat) => chat.id === currentChatId)
-      if (chatIndex !== -1) {
-        updatedHistory[chatIndex] = {
-          ...updatedHistory[chatIndex],
-          messages: currentMessages,
-          title: chatTitle,
-        }
-      }
-    } else {
-      const newChat: ChatHistory = {
-        id: generateId(),
-        title: chatTitle,
-        messages: currentMessages,
-        createdAt: new Date(),
-      }
-      updatedHistory.unshift(newChat)
-      setCurrentChatId(newChat.id)
-    }
-
-    saveChatHistory(updatedHistory)
-  }
-
-  const loadChat = (chat: ChatHistory) => {
-    setMessages(chat.messages)
-    setCurrentChatId(chat.id)
+    localStorage.setItem(`qrp_chat_history_${user.id}`, JSON.stringify(chats))
+    setChatHistory(chats)
   }
 
   const startNewChat = () => {
-    const welcomeMessage: Message = {
-      id: generateId(),
-      content: `Hallo ${user?.name}! Ik ben QRP. Waar kan ik je mee helpen? 😊`,
-      role: "assistant",
+    const newChat: ChatSession = {
+      id: Date.now().toString(),
+      title: "Nieuwe Chat",
+      messages: [
+        {
+          id: "welcome",
+          content: `Hallo ${user?.name}! Mijn naam is QRP, en het is een plezier om je te ontmoeten! 😊\n\nIk sta helemaal klaar om je vriendelijk te woord te staan. Of het nu gaat om vragen beantwoorden, hulp bij huiswerk, creatieve projecten, of gewoon een gezellig gesprek - ik draai mijn hand er niet voor om.\n\nWaar kan ik je vandaag mee helpen?`,
+          sender: "assistant",
+          timestamp: new Date(),
+        },
+      ],
       timestamp: new Date(),
     }
-    setMessages([welcomeMessage])
-    setCurrentChatId(null)
-
-    // Log activity
-    logActivity("Nieuwe chat gestart")
+    setCurrentChat(newChat)
   }
 
-  const deleteChat = (chatId: string) => {
-    const updatedHistory = chatHistory.filter((chat) => chat.id !== chatId)
-    saveChatHistory(updatedHistory)
+  const generateAIResponse = async (userMessage: string): Promise<string> => {
+    // Simulate AI thinking time
+    await new Promise((resolve) => setTimeout(resolve, 1000 + Math.random() * 2000))
 
-    if (currentChatId === chatId) {
-      startNewChat()
+    // Simple AI-like responses based on keywords
+    const lowerMessage = userMessage.toLowerCase()
+
+    if (lowerMessage.includes("hallo") || lowerMessage.includes("hoi")) {
+      return "Hallo! Leuk je te spreken! Hoe gaat het met je vandaag? 😊"
+    }
+
+    if (lowerMessage.includes("help") || lowerMessage.includes("hulp")) {
+      return "Natuurlijk help ik je graag! Vertel me waar je hulp bij nodig hebt. Ik kan je helpen met:\n\n• Vragen beantwoorden\n• Huiswerk en studie\n• Creatieve projecten\n• Programmeren\n• En nog veel meer!\n\nWat zou je graag willen weten?"
+    }
+
+    if (lowerMessage.includes("rekenen") || lowerMessage.includes("wiskunde") || lowerMessage.includes("math")) {
+      return "Voor wiskundige berekeningen raad ik je de AI Rekenmachine aan! Die vind je in het hoofdmenu. Daar kan ik complexe berekeningen maken met stap-voor-stap uitleg.\n\nMaar als je een snelle vraag hebt, kan ik je hier ook helpen! Wat wil je berekenen?"
+    }
+
+    if (
+      lowerMessage.includes("code") ||
+      lowerMessage.includes("programmeren") ||
+      lowerMessage.includes("javascript") ||
+      lowerMessage.includes("python")
+    ) {
+      return "Programmeren is een van mijn specialiteiten! 💻 Ik kan je helpen met:\n\n• Code schrijven en debuggen\n• Uitleg van concepten\n• Best practices\n• Verschillende programmeertalen\n\nWelke programmeertaal gebruik je, of waar heb je hulp bij nodig?"
+    }
+
+    if (lowerMessage.includes("huiswerk") || lowerMessage.includes("school") || lowerMessage.includes("studie")) {
+      return "Ik help graag met huiswerk en studie! 📚 Ik kan je ondersteunen bij:\n\n• Uitleg van moeilijke concepten\n• Structureren van je antwoorden\n• Onderzoek en bronnen\n• Alle schoolvakken\n\nWaar heb je hulp bij nodig?"
+    }
+
+    if (lowerMessage.includes("dank") || lowerMessage.includes("bedankt")) {
+      return "Graag gedaan! 😊 Ik ben er altijd om te helpen. Heb je nog andere vragen?"
+    }
+
+    if (lowerMessage.includes("wie ben je") || lowerMessage.includes("wat ben je")) {
+      return "Ik ben QRP, je vriendelijke AI-assistent! 🤖 Ik ben hier om je te helpen met allerlei vragen en taken. Ik kan:\n\n• Gesprekken voeren\n• Vragen beantwoorden\n• Helpen met huiswerk\n• Creatieve projecten ondersteunen\n• Code schrijven\n• En nog veel meer!\n\nIk probeer altijd vriendelijk en behulpzaam te zijn. Wat zou je graag willen weten?"
+    }
+
+    // Default responses
+    const defaultResponses = [
+      "Dat is een interessante vraag! Kun je me wat meer details geven zodat ik je beter kan helpen?",
+      "Ik begrijp je vraag. Laat me daar eens over nadenken... Kun je me wat meer context geven?",
+      "Dat klinkt belangrijk! Vertel me wat meer over de situatie zodat ik je de beste hulp kan bieden.",
+      "Interessant punt! Ik help je graag verder. Kun je wat meer uitleg geven?",
+      "Goed dat je dat vraagt! Om je de beste hulp te kunnen bieden, zou je wat meer details kunnen geven?",
+    ]
+
+    return defaultResponses[Math.floor(Math.random() * defaultResponses.length)]
+  }
+
+  const sendMessage = async () => {
+    if (!message.trim() || !currentChat || isTyping) return
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      content: message.trim(),
+      sender: "user",
+      timestamp: new Date(),
+    }
+
+    // Add user message
+    const updatedChat = {
+      ...currentChat,
+      messages: [...currentChat.messages, userMessage],
+      title: currentChat.messages.length === 1 ? message.trim().slice(0, 30) + "..." : currentChat.title,
+    }
+
+    setCurrentChat(updatedChat)
+    setMessage("")
+    setIsTyping(true)
+
+    try {
+      // Generate AI response
+      const aiResponse = await generateAIResponse(userMessage.content)
+
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        content: aiResponse,
+        sender: "assistant",
+        timestamp: new Date(),
+      }
+
+      const finalChat = {
+        ...updatedChat,
+        messages: [...updatedChat.messages, assistantMessage],
+      }
+
+      setCurrentChat(finalChat)
+
+      // Save to history
+      const updatedHistory = [finalChat, ...chatHistory.filter((chat) => chat.id !== finalChat.id)].slice(0, 20)
+      saveChatHistory(updatedHistory)
+
+      // Log activity
+      const activityLog = JSON.parse(localStorage.getItem(`activity_log_${user?.id}`) || "[]")
+      activityLog.push({
+        tool: "AI Chat",
+        action: `Bericht verzonden: "${userMessage.content.slice(0, 50)}${userMessage.content.length > 50 ? "..." : ""}"`,
+        time: new Date().toLocaleString("nl-NL"),
+        timestamp: new Date(),
+      })
+      localStorage.setItem(`activity_log_${user?.id}`, JSON.stringify(activityLog))
+    } catch (error) {
+      console.error("Error generating response:", error)
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        content: "Sorry, er is een fout opgetreden. Probeer het opnieuw.",
+        sender: "assistant",
+        timestamp: new Date(),
+      }
+
+      const finalChat = {
+        ...updatedChat,
+        messages: [...updatedChat.messages, errorMessage],
+      }
+
+      setCurrentChat(finalChat)
+    } finally {
+      setIsTyping(false)
     }
   }
 
-  const copyMessage = (content: string) => {
-    navigator.clipboard.writeText(content)
+  const clearChat = () => {
+    if (!user) return
+    setChatHistory([])
+    localStorage.removeItem(`qrp_chat_history_${user.id}`)
+    startNewChat()
   }
 
-  const exportChat = () => {
-    const chatData = {
-      user: user?.name,
-      title: `QRP Chat - ${new Date().toLocaleDateString("nl-NL")}`,
-      messages: messages,
-      exportedAt: new Date().toISOString(),
+  const copyToClipboard = async (text: string, id: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedId(id)
+      setTimeout(() => setCopiedId(null), 2000)
+    } catch (error) {
+      console.error("Failed to copy:", error)
     }
+  }
 
-    const blob = new Blob([JSON.stringify(chatData, null, 2)], { type: "application/json" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `qrp-chat-${Date.now()}.json`
-    a.click()
-    URL.revokeObjectURL(url)
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      sendMessage()
+    }
   }
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
-        <div className="android-avatar animate-pulse">
-          <Sparkles className="h-6 w-6 text-white" />
+        <div className="text-center space-y-4">
+          <div className="android-avatar animate-pulse">
+            <MessageSquare className="h-6 w-6 text-white" />
+          </div>
+          <p className="text-muted-foreground">Laden...</p>
         </div>
       </div>
     )
@@ -363,240 +260,226 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-indigo-900 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-indigo-900">
       {/* Header */}
       <header className="android-header px-6 py-4 border-b">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <Link href="/app">
               <Button variant="ghost" size="sm" className="android-icon-button">
-                <ArrowLeft className="h-5 w-5" />
+                <ArrowLeft className="h-4 w-4" />
               </Button>
             </Link>
-
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="sm" className="android-icon-button">
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="android-sheet">
-                <SheetHeader>
-                  <SheetTitle className="text-left">Chat Geschiedenis</SheetTitle>
-                </SheetHeader>
-                <div className="mt-6 space-y-2">
-                  <Button onClick={startNewChat} className="w-full justify-start android-primary-button">
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    Nieuwe Chat
-                  </Button>
-                  <ScrollArea className="h-[calc(100vh-200px)]">
-                    <div className="space-y-2">
-                      {chatHistory.map((chat) => (
-                        <div key={chat.id} className="group relative">
-                          <Button
-                            variant="ghost"
-                            onClick={() => loadChat(chat)}
-                            className={cn(
-                              "w-full justify-start text-left h-auto p-3 android-list-item",
-                              currentChatId === chat.id && "android-list-item-selected",
-                            )}
-                          >
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium truncate">{chat.title}</p>
-                              <p className="text-xs text-muted-foreground">{formatTime(chat.createdAt)}</p>
-                            </div>
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => deleteChat(chat.id)}
-                            className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 android-icon-button"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </div>
-              </SheetContent>
-            </Sheet>
-
-            <div className="flex items-center space-x-3">
-              <div className="android-avatar">
-                <Sparkles className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold">AI Chat</h1>
-                <p className="text-sm text-muted-foreground">Met {user.name}</p>
-              </div>
+            <div className="android-avatar bg-gradient-to-r from-blue-400 to-blue-600">
+              <MessageSquare className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold">AI Chat met QRP</h1>
+              <p className="text-sm text-muted-foreground">Je vriendelijke AI-assistent</p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm" onClick={exportChat} disabled={messages.length === 0}>
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
+          <div className="flex items-center space-x-3">
+            <Badge variant="secondary" className="text-xs">
+              <Brain className="h-3 w-3 mr-1" />
+              Online
+            </Badge>
           </div>
         </div>
       </header>
 
-      {/* Messages Area */}
-      <ScrollArea className="flex-1 px-6 py-4">
-        <div className="space-y-6 pb-4">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={cn(
-                "flex gap-4 android-message-container",
-                message.role === "user" ? "justify-end" : "justify-start",
-              )}
-            >
-              {message.role === "assistant" && (
-                <div className="android-avatar flex-shrink-0">
-                  <Sparkles className="h-4 w-4 text-white" />
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* Chat Area */}
+          <div className="lg:col-span-3 space-y-6">
+            <Card className="android-card h-[600px] flex flex-col">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-blue-500" />
+                    {currentChat?.title || "Chat met QRP"}
+                  </CardTitle>
+                  <Button variant="ghost" size="sm" onClick={startNewChat}>
+                    Nieuwe Chat
+                  </Button>
                 </div>
-              )}
+              </CardHeader>
 
-              <div
-                className={cn(
-                  "max-w-[85%] android-message-bubble group",
-                  message.role === "user" ? "android-message-user" : "android-message-assistant",
-                )}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1">
-                    {message.fileName && (
-                      <div className="flex items-center gap-2 mb-2 text-sm opacity-70">
-                        <Upload className="h-3 w-3" />
-                        {message.fileName}
+              <CardContent className="flex-1 flex flex-col p-0">
+                {/* Messages */}
+                <ScrollArea className="flex-1 px-6">
+                  <div className="space-y-4 pb-4">
+                    {currentChat?.messages.map((msg) => (
+                      <div
+                        key={msg.id}
+                        className={`flex gap-3 ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
+                      >
+                        {msg.sender === "assistant" && (
+                          <div className="android-avatar bg-gradient-to-r from-blue-400 to-blue-600 flex-shrink-0">
+                            <Bot className="h-4 w-4 text-white" />
+                          </div>
+                        )}
+
+                        <div
+                          className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                            msg.sender === "user"
+                              ? "bg-blue-500 text-white"
+                              : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                          }`}
+                        >
+                          <div className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</div>
+                          <div className="flex items-center justify-between mt-2">
+                            <span
+                              className={`text-xs ${
+                                msg.sender === "user" ? "text-blue-100" : "text-gray-500 dark:text-gray-400"
+                              }`}
+                            >
+                              {msg.timestamp.toLocaleTimeString("nl-NL", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                            {msg.sender === "assistant" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => copyToClipboard(msg.content, msg.id)}
+                                className="h-6 w-6 p-0 ml-2"
+                              >
+                                {copiedId === msg.id ? (
+                                  <Check className="h-3 w-3 text-green-600" />
+                                ) : (
+                                  <Copy className="h-3 w-3" />
+                                )}
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+
+                        {msg.sender === "user" && (
+                          <div className="android-avatar bg-gradient-to-r from-purple-400 to-purple-600 flex-shrink-0">
+                            <User className="h-4 w-4 text-white" />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+
+                    {isTyping && (
+                      <div className="flex gap-3 justify-start">
+                        <div className="android-avatar bg-gradient-to-r from-blue-400 to-blue-600 flex-shrink-0">
+                          <Bot className="h-4 w-4 text-white" />
+                        </div>
+                        <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-3">
+                          <div className="flex space-x-1">
+                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+                            <div
+                              className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                              style={{ animationDelay: "0.1s" }}
+                            />
+                            <div
+                              className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                              style={{ animationDelay: "0.2s" }}
+                            />
+                          </div>
+                        </div>
                       </div>
                     )}
-                    <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
-                    <p className="text-xs opacity-60 mt-2">{formatTime(message.timestamp)}</p>
+                    <div ref={messagesEndRef} />
                   </div>
+                </ScrollArea>
 
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                {/* Input */}
+                <div className="border-t p-4">
+                  <div className="flex gap-3">
+                    <Input
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      placeholder="Typ je bericht hier..."
+                      disabled={isTyping}
+                      className="flex-1"
+                    />
                     <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => copyMessage(message.content)}
-                      className="h-6 w-6 p-0 android-icon-button-small"
+                      onClick={sendMessage}
+                      disabled={!message.trim() || isTyping}
+                      className="android-primary-button"
                     >
-                      <Copy className="h-3 w-3" />
+                      <Send className="h-4 w-4" />
                     </Button>
-                    {message.role === "assistant" && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => speak(message.content)}
-                        className="h-6 w-6 p-0 android-icon-button-small"
-                      >
-                        <Volume2 className="h-3 w-3" />
-                      </Button>
-                    )}
                   </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Druk Enter om te verzenden. QRP spreekt Nederlands en helpt je graag!
+                  </p>
                 </div>
-              </div>
+              </CardContent>
+            </Card>
+          </div>
 
-              {message.role === "user" && (
-                <div className="android-avatar-user flex-shrink-0">
-                  <User className="h-4 w-4 text-white" />
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Chat History */}
+            <Card className="android-card">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <History className="h-5 w-5 text-blue-500" />
+                    Geschiedenis
+                  </CardTitle>
+                  {chatHistory.length > 0 && (
+                    <Button variant="ghost" size="sm" onClick={clearChat} className="text-red-500 hover:text-red-700">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
-              )}
-            </div>
-          ))}
+              </CardHeader>
+              <CardContent>
+                {chatHistory.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">Nog geen gesprekken</p>
+                    <p className="text-xs">Je chatgeschiedenis verschijnt hier</p>
+                  </div>
+                ) : (
+                  <ScrollArea className="h-64">
+                    <div className="space-y-2">
+                      {chatHistory.map((chat) => (
+                        <div
+                          key={chat.id}
+                          onClick={() => setCurrentChat(chat)}
+                          className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                            currentChat?.id === chat.id
+                              ? "bg-blue-100 dark:bg-blue-900/20"
+                              : "bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          }`}
+                        >
+                          <p className="text-sm font-medium truncate">{chat.title}</p>
+                          <p className="text-xs text-muted-foreground">{chat.messages.length} berichten</p>
+                          <p className="text-xs text-muted-foreground">{chat.timestamp.toLocaleDateString("nl-NL")}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                )}
+              </CardContent>
+            </Card>
 
-          {isLoading && (
-            <div className="flex gap-4 android-message-container">
-              <div className="android-avatar">
-                <Sparkles className="h-4 w-4 text-white animate-pulse" />
-              </div>
-              <div className="android-message-bubble android-message-assistant">
-                <div className="flex space-x-1">
-                  <div className="w-2 h-2 bg-current rounded-full animate-bounce opacity-60"></div>
-                  <div
-                    className="w-2 h-2 bg-current rounded-full animate-bounce opacity-60"
-                    style={{ animationDelay: "0.1s" }}
-                  ></div>
-                  <div
-                    className="w-2 h-2 bg-current rounded-full animate-bounce opacity-60"
-                    style={{ animationDelay: "0.2s" }}
-                  ></div>
+            {/* Tips */}
+            <Card className="android-card bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-blue-200 dark:border-blue-800">
+              <CardHeader>
+                <CardTitle className="text-lg text-blue-900 dark:text-blue-100">💡 Tips</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="text-sm text-blue-700 dark:text-blue-300 space-y-2">
+                  <p>• Vraag om hulp bij huiswerk</p>
+                  <p>• Laat code uitleggen</p>
+                  <p>• Brainstorm over ideeën</p>
+                  <p>• Stel algemene vragen</p>
+                  <p>• Voer gewoon een gesprek!</p>
                 </div>
-              </div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </ScrollArea>
-
-      {/* Input Area */}
-      <div className="android-input-container p-6 border-t">
-        {selectedFile && (
-          <div className="android-file-preview mb-4">
-            <Upload className="h-4 w-4" />
-            <span className="text-sm flex-1">{selectedFile.name}</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSelectedFile(null)}
-              className="android-icon-button-small"
-            >
-              <Trash2 className="h-3 w-3" />
-            </Button>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="android-input-form">
-          <div className="android-input-wrapper">
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Typ je bericht..."
-              disabled={isLoading}
-              className="android-input"
-            />
-            <input
-              ref={fileInputRef}
-              type="file"
-              onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-              className="hidden"
-              accept="image/*,.pdf,.doc,.docx,.txt"
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              className="android-input-action"
-            >
-              <Upload className="h-4 w-4" />
-            </Button>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={isListening ? stopListening : startListening}
-              disabled={isLoading}
-              className={cn("android-input-action", isListening && "text-red-500")}
-            >
-              {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-            </Button>
-
-            <Button
-              type="submit"
-              disabled={isLoading || (!input.trim() && !selectedFile)}
-              className="android-send-button"
-            >
-              <Send className="h-4 w-4" />
-            </Button>
-          </div>
-        </form>
       </div>
     </div>
   )
