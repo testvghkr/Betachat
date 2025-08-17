@@ -1,6 +1,5 @@
 "use client"
-
-import type React from "react"
+import { Clock } from "lucide-react" // Import Clock here
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
@@ -8,137 +7,100 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Calculator, ArrowLeft, History, Trash2, Copy, Check, Sparkles, Brain, TrendingUp } from "lucide-react"
+import { Calculator, ArrowLeft, Trash2, Copy, Sparkles, Send, CheckCircle } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 
-interface CalculationHistory {
+interface Calculation {
   id: string
-  expression: string
+  input: string
   result: string
-  explanation: string
-  timestamp: Date
+  timestamp: number
 }
 
 export default function CalculatorPage() {
-  const { user, loading } = useAuth()
-  const router = useRouter()
-  const [expression, setExpression] = useState("")
-  const [result, setResult] = useState("")
-  const [explanation, setExplanation] = useState("")
-  const [isCalculating, setIsCalculating] = useState(false)
-  const [history, setHistory] = useState<CalculationHistory[]>([])
+  const { user } = useAuth()
+  const [input, setInput] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [calculations, setCalculations] = useState<Calculation[]>([])
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const router = useRouter()
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/auth/login")
-      return
-    }
-
     if (user) {
-      loadHistory()
+      const saved = localStorage.getItem(`calculations_${user.id}`)
+      if (saved) {
+        setCalculations(JSON.parse(saved))
+      }
     }
-  }, [user, loading, router])
+  }, [user])
 
-  const loadHistory = () => {
+  const saveCalculation = (calculation: Calculation) => {
     if (!user) return
-    const savedHistory = JSON.parse(localStorage.getItem(`calculator_history_${user.id}`) || "[]")
-    const parsedHistory = savedHistory.map((item: any) => ({
-      ...item,
-      timestamp: new Date(item.timestamp),
-    }))
-    setHistory(parsedHistory)
-  }
 
-  const saveToHistory = (calculation: CalculationHistory) => {
-    if (!user) return
-    const newHistory = [calculation, ...history].slice(0, 50) // Keep last 50 calculations
-    setHistory(newHistory)
-    localStorage.setItem(`calculator_history_${user.id}`, JSON.stringify(newHistory))
+    const updated = [calculation, ...calculations]
+    setCalculations(updated)
+    localStorage.setItem(`calculations_${user.id}`, JSON.stringify(updated))
 
-    // Log activity
-    const activityLog = JSON.parse(localStorage.getItem(`activity_log_${user.id}`) || "[]")
-    activityLog.push({
-      tool: "AI Rekenmachine",
-      action: `Berekening: ${calculation.expression} = ${calculation.result}`,
-      time: new Date().toLocaleString("nl-NL"),
-      timestamp: new Date(),
+    // Update user stats
+    const stats = JSON.parse(
+      localStorage.getItem(`stats_${user.id}`) || '{"totalChats":0,"totalCalculations":0,"timeSpent":0,"lastActive":0}',
+    )
+    stats.totalCalculations += 1
+    stats.lastActive = Date.now()
+    localStorage.setItem(`stats_${user.id}`, JSON.stringify(stats))
+
+    // Add to activities
+    const activities = JSON.parse(localStorage.getItem(`activities_${user.id}`) || "[]")
+    activities.unshift({
+      id: Date.now().toString(),
+      type: "calculation",
+      description: `Berekening: ${calculation.input}`,
+      timestamp: Date.now(),
     })
-    localStorage.setItem(`activity_log_${user.id}`, JSON.stringify(activityLog))
+    localStorage.setItem(`activities_${user.id}`, JSON.stringify(activities.slice(0, 50)))
   }
 
-  const calculate = async () => {
-    if (!expression.trim()) return
+  const handleCalculate = async () => {
+    if (!input.trim() || isLoading) return
 
-    setIsCalculating(true)
-    setResult("")
-    setExplanation("")
+    setIsLoading(true)
 
     try {
-      // Simple calculation using eval (in production, use a proper math parser)
-      let calculatedResult: string
-      let aiExplanation: string
+      // Simulate AI calculation
+      await new Promise((resolve) => setTimeout(resolve, 1000))
 
+      let result = ""
+      const cleanInput = input.trim()
+
+      // Simple math evaluation (in real app, use proper math parser)
       try {
-        // Basic safety check for eval
-        const sanitized = expression.replace(/[^0-9+\-*/().\s]/g, "")
-        const evalResult = eval(sanitized)
-        calculatedResult = evalResult.toString()
-
-        // Generate AI explanation
-        aiExplanation = generateExplanation(expression, calculatedResult)
-      } catch (error) {
-        calculatedResult = "Fout in berekening"
-        aiExplanation = "De ingevoerde expressie kon niet worden berekend. Controleer de syntax."
+        // Basic math operations
+        if (/^[\d+\-*/().\s]+$/.test(cleanInput)) {
+          result = eval(cleanInput).toString()
+        } else {
+          // AI-style responses for complex questions
+          result = `Voor "${cleanInput}" zou ik een geavanceerde berekening uitvoeren. Dit is een demo-resultaat: ${Math.random().toFixed(2)}`
+        }
+      } catch {
+        result = `Ik kan "${cleanInput}" niet berekenen. Probeer een wiskundige uitdrukking zoals "2 + 2" of stel een vraag.`
       }
 
-      setResult(calculatedResult)
-      setExplanation(aiExplanation)
-
-      // Save to history
-      const calculation: CalculationHistory = {
+      const calculation: Calculation = {
         id: Date.now().toString(),
-        expression: expression.trim(),
-        result: calculatedResult,
-        explanation: aiExplanation,
-        timestamp: new Date(),
+        input: cleanInput,
+        result,
+        timestamp: Date.now(),
       }
 
-      saveToHistory(calculation)
+      saveCalculation(calculation)
+      setInput("")
     } catch (error) {
-      setResult("Fout")
-      setExplanation("Er is een fout opgetreden bij het berekenen.")
+      console.error("Calculation error:", error)
     } finally {
-      setIsCalculating(false)
+      setIsLoading(false)
     }
-  }
-
-  const generateExplanation = (expr: string, res: string): string => {
-    // Simple AI-like explanations
-    if (expr.includes("+")) {
-      return `Ik heb de getallen opgeteld: ${expr} = ${res}`
-    }
-    if (expr.includes("-")) {
-      return `Ik heb de aftrekking uitgevoerd: ${expr} = ${res}`
-    }
-    if (expr.includes("*")) {
-      return `Ik heb de vermenigvuldiging berekend: ${expr} = ${res}`
-    }
-    if (expr.includes("/")) {
-      return `Ik heb de deling uitgevoerd: ${expr} = ${res}`
-    }
-    if (expr.includes("(") && expr.includes(")")) {
-      return `Ik heb eerst de haakjes berekend, daarna de rest: ${expr} = ${res}`
-    }
-    return `Het resultaat van ${expr} is ${res}`
-  }
-
-  const clearHistory = () => {
-    if (!user) return
-    setHistory([])
-    localStorage.removeItem(`calculator_history_${user.id}`)
   }
 
   const copyToClipboard = async (text: string, id: string) => {
@@ -151,267 +113,178 @@ export default function CalculatorPage() {
     }
   }
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      calculate()
-    }
+  const clearHistory = () => {
+    if (!user) return
+    setCalculations([])
+    localStorage.removeItem(`calculations_${user.id}`)
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="android-avatar animate-pulse">
-            <Calculator className="h-6 w-6 text-white" />
-          </div>
-          <p className="text-muted-foreground">Laden...</p>
-        </div>
-      </div>
-    )
-  }
+  const formatTime = (timestamp: number) => {
+    const now = Date.now()
+    const diff = now - timestamp
+    const minutes = Math.floor(diff / (1000 * 60))
 
-  if (!user) {
-    return null
+    if (minutes < 1) return "Nu"
+    if (minutes < 60) return `${minutes}m geleden`
+    if (minutes < 1440) return `${Math.floor(minutes / 60)}u geleden`
+    return new Date(timestamp).toLocaleDateString("nl-NL")
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-green-900 dark:to-blue-900">
-      {/* Header */}
-      <header className="android-header px-6 py-4 border-b">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
+      {/* Android-style Status Bar */}
+      <div className="h-6 bg-gradient-to-r from-purple-600 to-blue-600 flex items-center justify-between px-4 text-white text-xs font-medium">
+        <span>9:41</span>
+        <div className="flex items-center space-x-1">
+          <div className="w-4 h-2 bg-white/80 rounded-sm"></div>
+          <div className="w-1 h-1 bg-white rounded-full"></div>
+          <div className="w-4 h-2 bg-white/60 rounded-sm"></div>
+        </div>
+      </div>
+
+      <div className="p-4 space-y-4">
+        {/* Header */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-3">
             <Link href="/app">
-              <Button variant="ghost" size="sm" className="android-icon-button">
-                <ArrowLeft className="h-4 w-4" />
+              <Button variant="ghost" size="sm" className="p-2">
+                <ArrowLeft className="w-4 h-4" />
               </Button>
             </Link>
-            <div className="android-avatar bg-gradient-to-r from-green-400 to-green-600">
-              <Calculator className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold">AI Rekenmachine</h1>
-              <p className="text-sm text-muted-foreground">Wiskundige problemen met AI-uitleg</p>
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
+                <Calculator className="w-4 h-4 text-white" />
+              </div>
+              <h1 className="text-xl font-bold text-gray-900">AI Rekenmachine</h1>
             </div>
           </div>
-
-          <div className="flex items-center space-x-3">
-            <Badge variant="secondary" className="text-xs">
-              <Brain className="h-3 w-3 mr-1" />
-              AI Powered
-            </Badge>
-          </div>
+          {calculations.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearHistory}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          )}
         </div>
-      </header>
 
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Calculator */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Input Section */}
-            <Card className="android-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-green-500" />
-                  Nieuwe Berekening
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <label htmlFor="expression" className="text-sm font-medium">
-                    Voer je berekening in:
-                  </label>
-                  <Input
-                    id="expression"
-                    value={expression}
-                    onChange={(e) => setExpression(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="Bijvoorbeeld: 2 + 3 * 4 of (10 + 5) / 3"
-                    className="text-lg font-mono"
-                    disabled={isCalculating}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Gebruik +, -, *, /, () voor berekeningen. Druk Enter om te berekenen.
-                  </p>
-                </div>
-
+        {/* Input Section */}
+        <Card className="bg-white shadow-lg border-0">
+          <CardContent className="p-4">
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <Sparkles className="w-4 h-4 text-purple-500" />
+                <span className="text-sm font-medium text-gray-700">Stel je vraag of voer een berekening in</span>
+              </div>
+              <div className="flex space-x-2">
+                <Input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Bijv: 2 + 2, of 'Bereken de oppervlakte van een cirkel met straal 5'"
+                  className="flex-1"
+                  onKeyPress={(e) => e.key === "Enter" && handleCalculate()}
+                  disabled={isLoading}
+                />
                 <Button
-                  onClick={calculate}
-                  disabled={!expression.trim() || isCalculating}
-                  className="w-full android-primary-button"
+                  onClick={handleCalculate}
+                  disabled={!input.trim() || isLoading}
+                  className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
                 >
-                  {isCalculating ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                      Berekenen...
-                    </>
+                  {isLoading ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
-                    <>
-                      <Calculator className="h-4 w-4 mr-2" />
-                      Bereken met AI
-                    </>
+                    <Send className="w-4 h-4" />
                   )}
                 </Button>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-            {/* Result Section */}
-            {(result || explanation) && (
-              <Card className="android-card bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-green-200 dark:border-green-800">
-                <CardHeader>
-                  <CardTitle className="text-green-900 dark:text-green-100">Resultaat</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {result && (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-green-700 dark:text-green-300">Antwoord:</span>
+        {/* Results */}
+        {calculations.length > 0 ? (
+          <Card className="bg-white shadow-lg border-0">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center">
+                <Clock className="w-5 h-5 mr-2 text-gray-600" />
+                Geschiedenis ({calculations.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <ScrollArea className="h-[400px]">
+                <div className="space-y-3 p-4">
+                  {calculations.map((calc) => (
+                    <div key={calc.id} className="border border-gray-100 rounded-lg p-4 space-y-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <Badge variant="outline" className="text-xs">
+                              Vraag
+                            </Badge>
+                            <span className="text-xs text-gray-500">{formatTime(calc.timestamp)}</span>
+                          </div>
+                          <p className="text-sm font-medium text-gray-900">{calc.input}</p>
+                        </div>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => copyToClipboard(result, "current-result")}
-                          className="h-6 w-6 p-0"
+                          onClick={() => copyToClipboard(calc.input, `input-${calc.id}`)}
+                          className="p-1"
                         >
-                          {copiedId === "current-result" ? (
-                            <Check className="h-3 w-3 text-green-600" />
+                          {copiedId === `input-${calc.id}` ? (
+                            <CheckCircle className="w-4 h-4 text-green-500" />
                           ) : (
-                            <Copy className="h-3 w-3" />
+                            <Copy className="w-4 h-4 text-gray-400" />
                           )}
                         </Button>
                       </div>
-                      <div className="text-2xl font-bold font-mono text-green-900 dark:text-green-100 bg-white dark:bg-gray-800 p-3 rounded-lg">
-                        {result}
+
+                      <div className="border-t border-gray-100 pt-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 space-y-2">
+                            <Badge className="bg-gradient-to-r from-purple-500 to-blue-500 text-white text-xs">
+                              Resultaat
+                            </Badge>
+                            <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg">{calc.result}</p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => copyToClipboard(calc.result, `result-${calc.id}`)}
+                            className="p-1 ml-2"
+                          >
+                            {copiedId === `result-${calc.id}` ? (
+                              <CheckCircle className="w-4 h-4 text-green-500" />
+                            ) : (
+                              <Copy className="w-4 h-4 text-gray-400" />
+                            )}
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  )}
-
-                  {explanation && (
-                    <div className="space-y-2">
-                      <span className="text-sm text-green-700 dark:text-green-300">AI Uitleg:</span>
-                      <div className="text-sm text-green-800 dark:text-green-200 bg-white dark:bg-gray-800 p-3 rounded-lg leading-relaxed">
-                        {explanation}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Quick Examples */}
-            <Card className="android-card">
-              <CardHeader>
-                <CardTitle className="text-lg">Voorbeelden</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-3">
-                  {["2 + 3 * 4", "(10 + 5) / 3", "25 - 7 * 2", "100 / (5 + 5)"].map((example) => (
-                    <Button
-                      key={example}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setExpression(example)}
-                      className="font-mono text-xs bg-transparent"
-                    >
-                      {example}
-                    </Button>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* History Sidebar */}
-          <div className="space-y-6">
-            <Card className="android-card">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <History className="h-5 w-5 text-blue-500" />
-                    Geschiedenis
-                  </CardTitle>
-                  {history.length > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={clearHistory}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent>
-                {history.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Calculator className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">Nog geen berekeningen</p>
-                    <p className="text-xs">Je geschiedenis verschijnt hier</p>
-                  </div>
-                ) : (
-                  <ScrollArea className="h-96">
-                    <div className="space-y-3">
-                      {history.map((calc) => (
-                        <div key={calc.id} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="font-mono text-sm font-medium">{calc.expression}</span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => copyToClipboard(calc.result, calc.id)}
-                              className="h-6 w-6 p-0"
-                            >
-                              {copiedId === calc.id ? (
-                                <Check className="h-3 w-3 text-green-600" />
-                              ) : (
-                                <Copy className="h-3 w-3" />
-                              )}
-                            </Button>
-                          </div>
-                          <div className="font-mono text-lg font-bold text-green-600">= {calc.result}</div>
-                          <div className="text-xs text-muted-foreground">{calc.timestamp.toLocaleString("nl-NL")}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Stats */}
-            <Card className="android-card">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-purple-500" />
-                  Statistieken
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Totaal berekeningen:</span>
-                  <span className="font-semibold">{history.length}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Vandaag:</span>
-                  <span className="font-semibold">
-                    {history.filter((calc) => calc.timestamp.toDateString() === new Date().toDateString()).length}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Deze week:</span>
-                  <span className="font-semibold">
-                    {
-                      history.filter((calc) => {
-                        const weekAgo = new Date()
-                        weekAgo.setDate(weekAgo.getDate() - 7)
-                        return calc.timestamp > weekAgo
-                      }).length
-                    }
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200">
+            <CardContent className="p-8 text-center">
+              <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Calculator className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Welkom bij de AI Rekenmachine!</h3>
+              <p className="text-gray-600 mb-4">
+                Stel wiskundige vragen, voer berekeningen uit, of vraag om hulp met complexe problemen.
+              </p>
+              <div className="space-y-2 text-sm text-gray-500">
+                <p>💡 Probeer: "2 + 2", "Wat is 15% van 200?", of "Bereken de oppervlakte van een rechthoek 5x3"</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   )
