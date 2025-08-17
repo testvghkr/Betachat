@@ -10,17 +10,21 @@ const genAI = new GoogleGenerativeAI(API_KEY);
 
 export const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 
-// Export generateResponse as requested by the error
-export async function generateResponse(message: string, history: Array<{role: string, content: string}> = []): Promise<string> {
+interface ChatMessage {
+  role: 'user' | 'model';
+  content: string;
+}
+
+export async function generateResponse(currentMessage: string, history: ChatMessage[] = []): Promise<string> {
   try {
     const chat = model.startChat({
       history: history.map(msg => ({
-        role: msg.role === 'assistant' ? 'model' : 'user',
+        role: msg.role,
         parts: [{ text: msg.content }]
       }))
     });
 
-    const result = await chat.sendMessage(message);
+    const result = await chat.sendMessage(currentMessage);
     const response = await result.response;
     return response.text();
   } catch (error) {

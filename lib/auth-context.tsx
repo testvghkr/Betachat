@@ -1,6 +1,7 @@
 "use client"
 
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import type React from "react"
+import { createContext, useContext, useState, useEffect } from "react"
 
 interface User {
   id: string
@@ -30,16 +31,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkAuth = async () => {
     try {
-      const response = await fetch('/api/auth/me', {
-        credentials: 'include'
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setUser(data.user)
+      // Check localStorage for user session
+      const savedUser = localStorage.getItem("qrp_user")
+      if (savedUser) {
+        const userData = JSON.parse(savedUser)
+        setUser(userData)
       }
     } catch (error) {
-      console.error('Auth check failed:', error)
+      console.error("Auth check failed:", error)
     } finally {
       setLoading(false)
     }
@@ -47,91 +46,87 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ email, password }),
-      })
+      // Demo users for testing
+      const demoUsers = [
+        { id: "1", email: "demo@qrp.com", password: "demo123", name: "Demo Gebruiker" },
+        { id: "2", email: "test@qrp.com", password: "test123", name: "Test Gebruiker" },
+        { id: "3", email: "guest@qrp.com", password: "guest123", name: "Gast Gebruiker", isGuest: true },
+      ]
 
-      if (response.ok) {
-        const data = await response.json()
-        setUser(data.user)
+      const user = demoUsers.find((u) => u.email === email && u.password === password)
+
+      if (user) {
+        const userData = { id: user.id, email: user.email, name: user.name, isGuest: user.isGuest }
+        setUser(userData)
+        localStorage.setItem("qrp_user", JSON.stringify(userData))
         return true
       }
+
       return false
     } catch (error) {
-      console.error('Login failed:', error)
+      console.error("Login failed:", error)
       return false
     }
   }
 
   const register = async (email: string, name: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ email, name, password }),
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setUser(data.user)
-        return true
+      // In a real app, this would make an API call
+      // For demo purposes, we'll create a user with a random ID
+      const userData = {
+        id: Date.now().toString(),
+        email,
+        name,
+        isGuest: false,
       }
-      return false
+
+      setUser(userData)
+      localStorage.setItem("qrp_user", JSON.stringify(userData))
+      return true
     } catch (error) {
-      console.error('Registration failed:', error)
+      console.error("Registration failed:", error)
       return false
     }
   }
 
   const loginAsGuest = async (): Promise<boolean> => {
     try {
-      const response = await fetch('/api/auth/guest', {
-        method: 'POST',
-        credentials: 'include',
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setUser(data.user)
-        return true
+      const guestData = {
+        id: "guest_" + Date.now(),
+        email: "guest@qrp.com",
+        name: "Gast Gebruiker",
+        isGuest: true,
       }
-      return false
+
+      setUser(guestData)
+      localStorage.setItem("qrp_user", JSON.stringify(guestData))
+      return true
     } catch (error) {
-      console.error('Guest login failed:', error)
+      console.error("Guest login failed:", error)
       return false
     }
   }
 
   const logout = async () => {
     try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
-      })
-    } catch (error) {
-      console.error('Logout failed:', error)
-    } finally {
+      localStorage.removeItem("qrp_user")
       setUser(null)
+    } catch (error) {
+      console.error("Logout failed:", error)
     }
   }
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      login,
-      register,
-      loginAsGuest,
-      logout,
-      loading
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        login,
+        register,
+        loginAsGuest,
+        logout,
+        loading,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )
@@ -140,7 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext)
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
+    throw new Error("useAuth must be used within an AuthProvider")
   }
   return context
 }

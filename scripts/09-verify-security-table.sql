@@ -59,9 +59,9 @@ SELECT 'Testing unique constraint...' as test_info;
 -- Toon huidige data (als er al data is)
 SELECT 
     COUNT(*) as total_security_questions,
-    COUNT(DISTINCT "userId") as unique_users_with_security
+    COUNT(DISTINCT "user_id") as unique_users_with_security
 FROM "SecurityQuestion"
-WHERE "isActive" = TRUE;
+WHERE "is_active" = TRUE; -- Assuming an 'is_active' column if it was part of the design
 
 SELECT '✅ SecurityQuestion tabel verificatie voltooid!' as status;
 

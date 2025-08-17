@@ -1,10 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { PrismaClient } from '@prisma/client';
 import { generateResponse } from "@/lib/google-ai"
 import { cookies } from "next/headers"
-import { getMessagesByChatId, createMessage } from '@/lib/db';
-
-const prisma = new PrismaClient();
+import { getMessagesByChatId, createMessage, getChatById, sql } from '@/lib/db'; // Added sql import
 
 function generateChatTitle(firstMessage: string): string {
   // Haal de eerste zin eruit (tot de eerste punt, vraagteken of uitroepteken)
@@ -31,8 +28,8 @@ export async function GET(request: NextRequest, { params }: { params: { chatId: 
 
   try {
     const cookieStore = await cookies()
-    const userId = cookieStore.get("auth-token")?.value
-    const isGuest = cookieStore.get("is-guest")?.value === "true"
+    const userId = cookieStore.get("auth-token")?.value // This will be 'qrp_guest_user'
+    const isGuest = cookieStore.get("is-guest")?.value === "true" // This will be 'true'
 
     console.log("User ID:", userId)
     console.log("Is Guest:", isGuest)
@@ -42,24 +39,7 @@ export async function GET(request: NextRequest, { params }: { params: { chatId: 
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    if (isGuest) {
-      console.log("Guest user, returning empty messages")
-      return NextResponse.json([])
-    }
-
-    // Check if chat belongs to user
-    const chat = await prisma.chat.findFirst({
-      where: {
-        id: params.chatId,
-        userId,
-      },
-    })
-
-    if (!chat) {
-      console.log("Chat not found or doesn't belong to user")
-      return NextResponse.json({ error: "Chat not found" }, { status: 404 })
-    }
-
+    // In this version, all users are effectively guests, so we always fetch from DB
     console.log("Fetching messages for chat:", params.chatId)
     const messages = await getMessagesByChatId(params.chatId);
 
@@ -68,8 +48,6 @@ export async function GET(request: NextRequest, { params }: { params: { chatId: 
   } catch (error) {
     console.error("Get messages error:", error)
     return NextResponse.json({ error: "Failed to fetch messages" }, { status: 500 })
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
@@ -84,8 +62,8 @@ export async function POST(request: NextRequest, { params }: { params: { chatId:
     const { content, fileUrl, fileName, role } = body
 
     const cookieStore = await cookies()
-    const userId = cookieStore.get("auth-token")?.value
-    const isGuest = cookieStore.get("is-guest")?.value === "true"
+    const userId = cookieStore.get("auth-token")?.value // This will be 'qrp_guest_user'
+    const isGuest = cookieStore.get("is-guest")?.value === "true" // This will be 'true'
 
     console.log("User ID:", userId)
     console.log("Is Guest:", isGuest)
@@ -98,59 +76,14 @@ export async function POST(request: NextRequest, { params }: { params: { chatId:
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    if (isGuest) {
-      console.log("Guest user, generating response without saving")
+    // All users are treated as guests in this version, so messages are saved to DB
+    // and AI response is generated.
 
-      const userMessage = {
-        id: `guest_user_${Date.now()}`,
-        content,
-        role: "user",
-        createdAt: new Date().toISOString(),
-        fileUrl,
-        fileName,
-      }
-
-      console.log("Generating AI response for guest")
-
-      // Prepare context for AI with file information
-      let aiContext = content
-      if (fileUrl && fileName) {
-        aiContext += `\n\n[Gebruiker heeft een bestand gedeeld: ${fileName}]`
-      }
-
-      let aiResponse = await generateResponse([{ role: "user", content: aiContext }])
-
-      // If there's a file, mention it in the response
-      if (fileUrl && fileName) {
-        const fileType = fileName.split(".").pop()?.toLowerCase()
-        if (["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(fileType || "")) {
-          aiResponse = `Ik zie dat je een afbeelding hebt gedeeld: ${fileName}. ${aiResponse}`
-        } else {
-          aiResponse = `Ik zie dat je een bestand hebt gedeeld: ${fileName}. ${aiResponse}`
-        }
-      }
-
-      const aiMessage = {
-        id: `guest_ai_${Date.now()}`,
-        content: aiResponse,
-        role: "assistant",
-        createdAt: new Date().toISOString(),
-      }
-
-      console.log("AI response generated for guest")
-      return NextResponse.json({ userMessage, aiMessage })
-    }
-
-    // Check if chat belongs to user
-    const chat = await prisma.chat.findFirst({
-      where: {
-        id: params.chatId,
-        userId,
-      },
-    })
+    // Check if chat exists
+    const chat = await getChatById(params.chatId);
 
     if (!chat) {
-      console.log("Chat not found or doesn't belong to user")
+      console.log("Chat not found")
       return NextResponse.json({ error: "Chat not found" }, { status: 404 })
     }
 
@@ -160,22 +93,15 @@ export async function POST(request: NextRequest, { params }: { params: { chatId:
     console.log("User message created:", userMessage.id)
 
     // Check if this is the first message in the chat (excluding welcome messages)
-    const messageCount = await prisma.message.count({
-      where: {
-        chat_id: params.chatId,
-        role: "user", // Only count user messages
-      },
-    })
+    const existingMessages = await getMessagesByChatId(params.chatId);
+    const userMessageCount = existingMessages.filter(m => m.role === 'user').length;
 
     // If this is the first user message, update the chat title
-    if (messageCount === 1) {
+    if (userMessageCount === 1) {
       console.log("Generating chat title from first message")
       const newTitle = generateChatTitle(content)
 
-      await prisma.chat.update({
-        where: { id: params.chatId },
-        data: { title: newTitle },
-      })
+      await sql`UPDATE "Chat" SET title = ${newTitle}, updated_at = NOW() WHERE id = ${params.chatId};`;
 
       console.log("Chat title updated to:", newTitle)
     }
@@ -188,16 +114,16 @@ export async function POST(request: NextRequest, { params }: { params: { chatId:
     // Prepare context for AI including file information
     const contextMessages = messages.map((m: any) => {
       let messageContent = m.content
-      if (m.fileUrl && m.fileName) {
-        messageContent += `\n\n[${m.role === "user" ? "Gebruiker" : "Assistent"} heeft een bestand gedeeld: ${m.fileName}]`
-      }
+      // Note: fileUrl and fileName are not stored in the Message table in this raw SQL setup.
+      // If you need them for AI context, you'd need to pass them separately or store them.
+      // For now, assuming AI only needs text content.
       return {
         role: m.role,
         content: messageContent,
       }
     })
 
-    const aiResponse = await generateResponse(contextMessages)
+    const aiResponse = await generateResponse(content, contextMessages) // Pass current message and full history
 
     console.log("Creating AI message in database")
     const aiMessage = await createMessage(params.chatId, "assistant", aiResponse);
@@ -205,10 +131,7 @@ export async function POST(request: NextRequest, { params }: { params: { chatId:
     console.log("AI message created:", aiMessage.id)
 
     console.log("Updating chat timestamp")
-    await prisma.chat.update({
-      where: { id: params.chatId },
-      data: { updatedAt: new Date() },
-    })
+    await sql`UPDATE "Chat" SET updated_at = NOW() WHERE id = ${params.chatId};`;
 
     console.log("Message handling complete")
     return NextResponse.json({ userMessage, aiMessage }, { status: 201 });
@@ -216,11 +139,9 @@ export async function POST(request: NextRequest, { params }: { params: { chatId:
     console.error("Post message error:", error)
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : 'Failed to create message',
+        error: error instanceof Error ? error.message : 'Failed to send message',
       },
       { status: 500 },
     )
-  } finally {
-    await prisma.$disconnect();
   }
 }

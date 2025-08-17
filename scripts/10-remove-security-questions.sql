@@ -16,16 +16,16 @@ DROP TABLE IF EXISTS "SecurityQuestion";
 
 -- Verwijder eventuele indexen
 DROP INDEX IF EXISTS "User_securityQuestion_idx";
-DROP INDEX IF EXISTS "SecurityQuestion_userId_idx";
-DROP INDEX IF EXISTS "SecurityQuestion_createdAt_idx";
-DROP INDEX IF EXISTS "SecurityQuestion_userId_active_idx";
+DROP INDEX IF EXISTS "SecurityQuestion_user_id_idx";
+DROP INDEX IF EXISTS "SecurityQuestion_created_at_idx";
+DROP INDEX IF EXISTS "SecurityQuestion_user_id_active_idx";
 
 -- Voeg een resetToken kolom toe aan de User tabel voor eenvoudige wachtwoord reset
-ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "resetToken" TEXT;
-ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "resetTokenExpires" TIMESTAMP(3);
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "reset_token" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "reset_token_expires_at" TIMESTAMP(3);
 
 -- Maak een index voor de resetToken voor betere performance
-CREATE INDEX IF NOT EXISTS "User_resetToken_idx" ON "User"("resetToken");
+CREATE INDEX IF NOT EXISTS "User_reset_token_idx" ON "User"("reset_token");
 
 -- Toon de huidige User tabel structuur
 SELECT 'User tabel structuur na verwijderen beveiligingsvragen:' as info;

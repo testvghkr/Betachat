@@ -1,5 +1,11 @@
 -- Verify database setup is working correctly
 
+-- Verify tables exist
+SELECT 'Chat' AS table_name FROM "Chat" LIMIT 0;
+SELECT 'Message' AS table_name FROM "Message" LIMIT 0;
+SELECT 'VisitorCount' AS table_name FROM "VisitorCount" LIMIT 0;
+SELECT 'User' AS table_name FROM "User" LIMIT 0;
+
 -- Check if all tables exist
 SELECT 
     table_name,
@@ -50,6 +56,9 @@ WHERE schemaname = 'public'
     AND tablename IN ('User', 'Chat', 'Message', 'VisitorCount')
 ORDER BY tablename, indexname;
 
+-- Verify initial visitor count
+SELECT count FROM "VisitorCount" WHERE id = 1;
+
 -- Show current data counts
 SELECT 
     'User' as table_name, COUNT(*) as record_count FROM "User"
@@ -62,6 +71,10 @@ SELECT
 UNION ALL
 SELECT 
     'VisitorCount' as table_name, COUNT(*) as record_count FROM "VisitorCount";
+
+-- Verify chat and message counts (should be 0 if no seed data)
+SELECT COUNT(*) FROM "Chat";
+SELECT COUNT(*) FROM "Message";
 
 -- Test a simple join to verify relationships work
 SELECT 

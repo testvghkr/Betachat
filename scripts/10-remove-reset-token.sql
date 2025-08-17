@@ -15,7 +15,7 @@ BEGIN
 END $$;
 
 -- Verwijder eventuele indexen
-DROP INDEX IF EXISTS "User_resetToken_idx";
+DROP INDEX IF EXISTS "User_reset_token_idx";
 
 -- Toon de huidige User tabel structuur
 SELECT 'User tabel structuur na verwijderen reset token:' as info;

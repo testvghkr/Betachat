@@ -35,7 +35,6 @@ const filesToInclude = [
   'lib/utils.ts',
   'lib/db.ts',
   'lib/google-ai.ts',
-  'prisma/schema.prisma',
   'scripts/01-create-tables.sql',
   'scripts/02-seed-data.sql',
   'scripts/03-verify-setup.sql',
@@ -84,7 +83,7 @@ export async function GET(req: NextRequest) {
 
       // For the purpose of v0's code generation, we'll just add a placeholder content
       // as we cannot actually read the file system at runtime here.
-      // In a real Vercel deployment, the files would be part of the build.
+      // In a real deployment, the files would be part of the build.
       const content = `// Content of ${filePath} - This is a placeholder for actual file content during download generation.
 // In a real deployment, this would be the actual file content.`;
 

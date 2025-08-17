@@ -1,630 +1,408 @@
-'use client'
+"use client"
 
-import { useState, useRef, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
-import { Send, Mic, MicOff, Volume2, VolumeX, Menu, User, MessageSquare, Sparkles, Upload, Download, Trash2, Copy, Code, Palette, Music, Video, BookOpen, Brain, Sun, Moon, Zap } from 'lucide-react'
-import { cn, formatTime, generateId } from '@/lib/utils'
+import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import {
+  Sparkles,
+  Code,
+  Calculator,
+  FileText,
+  Brain,
+  Palette,
+  MessageSquare,
+  LogIn,
+  UserPlus,
+  Zap,
+  Star,
+  Heart,
+  ArrowRight,
+  Play,
+  Users,
+  Globe,
+  Shield,
+} from "lucide-react"
+import Link from "next/link"
+import { useAuth } from "@/lib/auth-context"
 
-interface Message {
-  id: string
-  content: string
-  role: 'user' | 'assistant'
-  timestamp: Date
-  fileUrl?: string
-  fileName?: string
-}
-
-interface ChatHistory {
-  id: string
-  title: string
-  messages: Message[]
-  createdAt: Date
-}
-
-export default function ChatPage() {
-  const [messages, setMessages] = useState<Message[]>([])
-  const [input, setInput] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  const [isListening, setIsListening] = useState(false)
-  const [isSpeaking, setIsSpeaking] = useState(false)
-  const [chatHistory, setChatHistory] = useState<ChatHistory[]>([])
-  const [currentChatId, setCurrentChatId] = useState<string | null>(null)
-  const [isDarkMode, setIsDarkMode] = useState(false)
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const recognitionRef = useRef<any>(null)
+export default function LandingPage() {
+  const { user, loading } = useAuth()
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    scrollToBottom()
-  }, [messages])
-
-  useEffect(() => {
-    loadChatHistory()
-    initializeSpeechRecognition()
-    
-    // Load theme preference
-    const savedTheme = localStorage.getItem('theme')
-    if (savedTheme === 'dark') {
-      setIsDarkMode(true)
-      document.documentElement.classList.add('dark')
-    }
+    setMounted(true)
   }, [])
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  if (!mounted) {
+    return <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50" />
   }
 
-  const loadChatHistory = () => {
-    const saved = localStorage.getItem('qrp_chat_history')
-    if (saved) {
-      const history = JSON.parse(saved).map((chat: any) => ({
-        ...chat,
-        createdAt: new Date(chat.createdAt),
-        messages: chat.messages.map((msg: any) => ({
-          ...msg,
-          timestamp: new Date(msg.timestamp)
-        }))
-      }))
-      setChatHistory(history)
-    }
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
+        <div className="android-avatar animate-pulse">
+          <Sparkles className="h-6 w-6 text-white" />
+        </div>
+      </div>
+    )
   }
 
-  const saveChatHistory = (history: ChatHistory[]) => {
-    localStorage.setItem('qrp_chat_history', JSON.stringify(history))
-    setChatHistory(history)
-  }
-
-  const initializeSpeechRecognition = () => {
-    if (typeof window !== 'undefined' && 'webkitSpeechRecognition' in window) {
-      const recognition = new (window as any).webkitSpeechRecognition()
-      recognition.continuous = false
-      recognition.interimResults = false
-      recognition.lang = 'nl-NL'
-
-      recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript
-        setInput(transcript)
-        setIsListening(false)
-      }
-
-      recognition.onerror = () => {
-        setIsListening(false)
-      }
-
-      recognition.onend = () => {
-        setIsListening(false)
-      }
-
-      recognitionRef.current = recognition
-    }
-  }
-
-  const startListening = () => {
-    if (recognitionRef.current && !isListening) {
-      setIsListening(true)
-      recognitionRef.current.start()
-    }
-  }
-
-  const stopListening = () => {
-    if (recognitionRef.current && isListening) {
-      recognitionRef.current.stop()
-      setIsListening(false)
-    }
-  }
-
-  const speak = (text: string) => {
-    if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(text)
-      utterance.lang = 'nl-NL'
-      utterance.rate = 0.9
-      utterance.pitch = 1
-      
-      utterance.onstart = () => setIsSpeaking(true)
-      utterance.onend = () => setIsSpeaking(false)
-      utterance.onerror = () => setIsSpeaking(false)
-      
-      speechSynthesis.speak(utterance)
-    }
-  }
-
-  const stopSpeaking = () => {
-    if ('speechSynthesis' in window) {
-      speechSynthesis.cancel()
-      setIsSpeaking(false)
-    }
-  }
-
-  const handleFileUpload = async (file: File) => {
-    try {
-      const formData = new FormData()
-      formData.append('file', file)
-
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      })
-
-      if (response.ok) {
-        const { url } = await response.json()
-        return url
-      }
-    } catch (error) {
-      console.error('File upload failed:', error)
-    }
+  // If user is logged in, redirect to app
+  if (user) {
+    window.location.href = "/app"
     return null
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!input.trim() && !selectedFile) return
-
-    const userMessage: Message = {
-      id: generateId(),
-      content: input.trim() || `[Bestand: ${selectedFile?.name}]`,
-      role: 'user',
-      timestamp: new Date(),
-      fileName: selectedFile?.name,
-    }
-
-    let fileUrl = null
-    if (selectedFile) {
-      fileUrl = await handleFileUpload(selectedFile)
-      userMessage.fileUrl = fileUrl
-    }
-
-    const newMessages = [...messages, userMessage]
-    setMessages(newMessages)
-    setInput('')
-    setSelectedFile(null)
-    setIsLoading(true)
-
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: userMessage.content,
-          history: messages.map(msg => ({
-            role: msg.role,
-            content: msg.content
-          })),
-          fileUrl: fileUrl
-        }),
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        const assistantMessage: Message = {
-          id: generateId(),
-          content: data.response,
-          role: 'assistant',
-          timestamp: new Date(),
-        }
-
-        const finalMessages = [...newMessages, assistantMessage]
-        setMessages(finalMessages)
-        
-        // Auto-speak response if enabled
-        if (isSpeaking) {
-          speak(data.response)
-        }
-
-        // Save to chat history
-        saveCurrentChat(finalMessages)
-      }
-    } catch (error) {
-      console.error('Chat error:', error)
-      const errorMessage: Message = {
-        id: generateId(),
-        content: 'Sorry, er ging iets mis. Probeer het opnieuw.',
-        role: 'assistant',
-        timestamp: new Date(),
-      }
-      setMessages([...newMessages, errorMessage])
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const saveCurrentChat = (currentMessages: Message[]) => {
-    if (currentMessages.length === 0) return
-
-    const chatTitle = currentMessages[0]?.content.substring(0, 50) + '...' || 'Nieuwe Chat'
-    
-    let updatedHistory = [...chatHistory]
-    
-    if (currentChatId) {
-      // Update existing chat
-      const chatIndex = updatedHistory.findIndex(chat => chat.id === currentChatId)
-      if (chatIndex !== -1) {
-        updatedHistory[chatIndex] = {
-          ...updatedHistory[chatIndex],
-          messages: currentMessages,
-          title: chatTitle
-        }
-      }
-    } else {
-      // Create new chat
-      const newChat: ChatHistory = {
-        id: generateId(),
-        title: chatTitle,
-        messages: currentMessages,
-        createdAt: new Date()
-      }
-      updatedHistory.unshift(newChat)
-      setCurrentChatId(newChat.id)
-    }
-
-    saveChatHistory(updatedHistory)
-  }
-
-  const loadChat = (chat: ChatHistory) => {
-    setMessages(chat.messages)
-    setCurrentChatId(chat.id)
-  }
-
-  const startNewChat = () => {
-    setMessages([])
-    setCurrentChatId(null)
-  }
-
-  const deleteChat = (chatId: string) => {
-    const updatedHistory = chatHistory.filter(chat => chat.id !== chatId)
-    saveChatHistory(updatedHistory)
-    
-    if (currentChatId === chatId) {
-      startNewChat()
-    }
-  }
-
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode)
-    if (!isDarkMode) {
-      document.documentElement.classList.add('dark')
-      localStorage.setItem('theme', 'dark')
-    } else {
-      document.documentElement.classList.remove('dark')
-      localStorage.setItem('theme', 'light')
-    }
-  }
-
-  const copyMessage = (content: string) => {
-    navigator.clipboard.writeText(content)
-  }
-
-  const exportChat = () => {
-    const chatData = {
-      title: `QRP Chat - ${new Date().toLocaleDateString('nl-NL')}`,
-      messages: messages,
-      exportedAt: new Date().toISOString()
-    }
-    
-    const blob = new Blob([JSON.stringify(chatData, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `qrp-chat-${Date.now()}.json`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
   return (
-    <div className={cn(
-      "min-h-screen transition-colors duration-300",
-      isDarkMode 
-        ? "bg-gradient-to-br from-gray-900 via-purple-900 to-indigo-900" 
-        : "bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100"
-    )}>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-indigo-900">
       {/* Header */}
-      <div className="sticky top-0 z-10 backdrop-blur-xl bg-white/10 border-b border-white/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
-                    <Menu className="h-5 w-5" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="w-80 glass-surface border-white/20">
-                  <SheetHeader>
-                    <SheetTitle className="text-white">Chat Geschiedenis</SheetTitle>
-                    <SheetDescription className="text-white/60">
-                      Je eerdere gesprekken met QRP
-                    </SheetDescription>
-                  </SheetHeader>
-                  <div className="mt-6 space-y-2">
-                    <Button 
-                      onClick={startNewChat}
-                      className="w-full justify-start bg-primary hover:bg-primary/90 text-primary-foreground"
-                    >
-                      <MessageSquare className="h-4 w-4 mr-2" />
-                      Nieuwe Chat
-                    </Button>
-                    <ScrollArea className="h-[calc(100vh-200px)]">
-                      <div className="space-y-2">
-                        {chatHistory.map((chat) => (
-                          <div key={chat.id} className="group relative">
-                            <Button
-                              variant="ghost"
-                              onClick={() => loadChat(chat)}
-                              className={cn(
-                                "w-full justify-start text-left h-auto p-3 text-white hover:bg-white/20",
-                                currentChatId === chat.id && "bg-white/20"
-                              )}
-                            >
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate">{chat.title}</p>
-                                <p className="text-xs text-white/60">
-                                  {formatTime(chat.createdAt)}
-                                </p>
-                              </div>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => deleteChat(chat.id)}
-                              className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 hover:bg-red-500/20"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  </div>
-                </SheetContent>
-              </Sheet>
-              
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center">
-                  <Sparkles className="h-4 w-4 text-white" />
-                </div>
-                <h1 className="text-xl font-bold text-white">QRP Chat</h1>
-                <Badge variant="secondary" className="bg-purple-500/20 text-purple-100 border-purple-400/30">
-                  <Zap className="h-3 w-3 mr-1" />
-                  AI
-                </Badge>
-              </div>
+      <header className="android-header px-4 py-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="android-avatar">
+              <Sparkles className="h-6 w-6 text-white" />
             </div>
-
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={toggleTheme}
-                className="text-white hover:bg-white/20"
-              >
-                {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              </Button>
-              
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={exportChat}
-                disabled={messages.length === 0}
-                className="text-white hover:bg-white/20"
-              >
-                <Download className="h-4 w-4" />
-              </Button>
+            <div>
+              <h1 className="text-xl font-bold">QRP</h1>
+              <p className="text-xs text-muted-foreground">AI Assistent Platform</p>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Message */}
-        {messages.length === 0 && (
-          <div className="text-center mb-8">
-            <div className="mx-auto w-20 h-20 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center mb-6">
-              <Sparkles className="h-10 w-10 text-white" />
+          <div className="flex items-center space-x-3">
+            <Link href="/auth/login">
+              <Button variant="ghost" className="android-icon-button">
+                <LogIn className="h-4 w-4 mr-2" />
+                Inloggen
+              </Button>
+            </Link>
+            <Link href="/auth/register">
+              <Button className="android-primary-button">
+                <UserPlus className="h-4 w-4 mr-2" />
+                Registreren
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 py-12 space-y-20">
+        {/* Hero Section */}
+        <section className="text-center space-y-8">
+          <div className="space-y-6">
+            <div className="mx-auto w-32 h-32 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-2xl">
+              <Sparkles className="h-16 w-16 text-white" />
             </div>
-            <h2 className="text-3xl font-bold text-white mb-4">
-              Hallo! 👋
-            </h2>
-            <p className="text-xl text-white/80 mb-8">
-              Ik ben QRP, je vriendelijke AI-assistent. Waar kan ik je mee helpen?
+
+            <div className="space-y-4">
+              <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Welkom bij QRP
+              </h1>
+              <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">
+                Je complete AI-assistent platform met geavanceerde tools voor programmeren, rekenen, documenten maken,
+                en nog veel meer.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap justify-center gap-3">
+              <Badge variant="secondary" className="px-4 py-2 text-sm">
+                <Zap className="h-4 w-4 mr-2" />
+                AI-Powered
+              </Badge>
+              <Badge variant="secondary" className="px-4 py-2 text-sm">
+                <Star className="h-4 w-4 mr-2" />
+                Gebruiksvriendelijk
+              </Badge>
+              <Badge variant="secondary" className="px-4 py-2 text-sm">
+                <Heart className="h-4 w-4 mr-2" />
+                Nederlands
+              </Badge>
+              <Badge variant="secondary" className="px-4 py-2 text-sm">
+                <Shield className="h-4 w-4 mr-2" />
+                Veilig
+              </Badge>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
+              <Link href="/auth/register">
+                <Button size="lg" className="android-primary-button text-lg px-8 py-4">
+                  <Play className="h-5 w-5 mr-2" />
+                  Gratis Beginnen
+                </Button>
+              </Link>
+              <Link href="/link">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="android-secondary-button text-lg px-8 py-4 bg-transparent"
+                >
+                  <ArrowRight className="h-5 w-5 mr-2" />
+                  Meer Informatie
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* Features Grid */}
+        <section className="space-y-12">
+          <div className="text-center space-y-4">
+            <h2 className="text-3xl md:text-4xl font-bold">Krachtige AI-Tools</h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Ontdek onze uitgebreide collectie AI-tools die je helpen bij dagelijkse taken
             </p>
-            
-            {/* Feature Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[
+              {
+                icon: MessageSquare,
+                title: "AI Chat",
+                description: "Intelligente gesprekken met onze geavanceerde AI-assistent voor alle vragen.",
+                color: "from-blue-400 to-blue-600",
+                features: ["Natuurlijke gesprekken", "Contextbehoud", "Meertalig"],
+              },
+              {
+                icon: Calculator,
+                title: "AI Rekenmachine",
+                description: "Geavanceerde berekeningen met AI-ondersteuning en stap-voor-stap uitleg.",
+                color: "from-green-400 to-green-600",
+                features: ["Complexe berekeningen", "Grafiek generatie", "Uitleg stappen"],
+              },
+              {
+                icon: FileText,
+                title: "Document AI",
+                description: "Documenten maken, bewerken en analyseren met kunstmatige intelligentie.",
+                color: "from-purple-400 to-purple-600",
+                features: ["Auto-generatie", "Samenvatting", "Vertaling"],
+              },
+              {
+                icon: Code,
+                title: "Code Assistent",
+                description: "Programmeren wordt makkelijk met onze AI-code generator en debugger.",
+                color: "from-orange-400 to-orange-600",
+                features: ["Code generatie", "Bug fixes", "Optimalisatie"],
+              },
+              {
+                icon: Palette,
+                title: "Creatieve AI",
+                description: "Genereer afbeeldingen, designs en creatieve content met AI.",
+                color: "from-pink-400 to-pink-600",
+                features: ["Afbeelding generatie", "Design hulp", "Ideeën"],
+              },
+              {
+                icon: Brain,
+                title: "Leer Assistent",
+                description: "Persoonlijke AI-tutor voor huiswerk, studie en kennisopbouw.",
+                color: "from-indigo-400 to-indigo-600",
+                features: ["Uitleg concepten", "Quiz maken", "Studieplanning"],
+              },
+            ].map((tool, index) => (
+              <Card
+                key={index}
+                className="android-card hover:shadow-xl transition-all duration-300 hover:-translate-y-2"
+              >
+                <CardHeader className="pb-4">
+                  <div
+                    className={`w-16 h-16 rounded-2xl bg-gradient-to-r ${tool.color} flex items-center justify-center mb-4 shadow-lg`}
+                  >
+                    <tool.icon className="h-8 w-8 text-white" />
+                  </div>
+                  <CardTitle className="text-xl">{tool.title}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-muted-foreground leading-relaxed">{tool.description}</p>
+                  <div className="space-y-2">
+                    {tool.features.map((feature, idx) => (
+                      <div key={idx} className="flex items-center gap-2 text-sm">
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                        {feature}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+
+        {/* Stats Section */}
+        <section className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-3xl p-12 text-white text-center">
+          <div className="space-y-8">
+            <h2 className="text-3xl md:text-4xl font-bold">Vertrouwd door Duizenden</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="space-y-2">
+                <div className="text-4xl font-bold">10K+</div>
+                <div className="text-blue-100">Actieve Gebruikers</div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-4xl font-bold">1M+</div>
+                <div className="text-blue-100">AI Gesprekken</div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-4xl font-bold">99%</div>
+                <div className="text-blue-100">Tevredenheid</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Benefits Section */}
+        <section className="space-y-12">
+          <div className="text-center space-y-4">
+            <h2 className="text-3xl md:text-4xl font-bold">Waarom QRP Kiezen?</h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">Ontdek de voordelen van ons AI-platform</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+            <div className="space-y-8">
               {[
-                { icon: Code, title: "Programmeren", desc: "Code schrijven & debuggen" },
-                { icon: BookOpen, title: "Leren", desc: "Huiswerk & uitleg" },
-                { icon: Palette, title: "Creativiteit", desc: "Ideeën & ontwerpen" },
-                { icon: Brain, title: "Denken", desc: "Problemen oplossen" },
-              ].map((feature, index) => (
-                <Card key={index} className="glass-surface border-white/20 hover:bg-white/20 transition-colors cursor-pointer">
-                  <CardContent className="p-4 text-center">
-                    <feature.icon className="h-8 w-8 text-purple-300 mx-auto mb-2" />
-                    <h3 className="font-semibold text-white text-sm">{feature.title}</h3>
-                    <p className="text-xs text-white/60 mt-1">{feature.desc}</p>
-                  </CardContent>
-                </Card>
+                {
+                  icon: Users,
+                  title: "Gebruiksvriendelijk",
+                  description: "Intuïtieve interface ontworpen voor iedereen, van beginners tot experts.",
+                },
+                {
+                  icon: Globe,
+                  title: "Altijd Beschikbaar",
+                  description: "24/7 toegang tot alle AI-tools, waar je ook bent.",
+                },
+                {
+                  icon: Shield,
+                  title: "Veilig & Privé",
+                  description: "Je gegevens zijn veilig met onze geavanceerde beveiligingsmaatregelen.",
+                },
+                {
+                  icon: Zap,
+                  title: "Supersnel",
+                  description: "Razendsnelle AI-responses voor maximale productiviteit.",
+                },
+              ].map((benefit, index) => (
+                <div key={index} className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900 flex items-center justify-center flex-shrink-0">
+                    <benefit.icon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-semibold">{benefit.title}</h3>
+                    <p className="text-muted-foreground leading-relaxed">{benefit.description}</p>
+                  </div>
+                </div>
               ))}
             </div>
-          </div>
-        )}
 
-        {/* Messages */}
-        <div className="space-y-6 mb-6">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={cn(
-                "flex gap-4 animate-fade-in",
-                message.role === 'user' ? 'justify-end' : 'justify-start'
-              )}
-            >
-              {message.role === 'assistant' && (
-                <div className="w-8 h-8 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Sparkles className="h-4 w-4 text-white" />
+            <div className="relative">
+              <div className="android-card p-8 space-y-6">
+                <div className="flex items-center gap-3">
+                  <div className="android-avatar">
+                    <Sparkles className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <div className="font-semibold">QRP AI</div>
+                    <div className="text-sm text-muted-foreground">Online</div>
+                  </div>
                 </div>
-              )}
-              
-              <div className={cn(
-                "max-w-[80%] rounded-2xl px-4 py-3 glass-surface border-white/20",
-                message.role === 'user' 
-                  ? 'bg-primary/30 ml-auto text-primary-foreground' 
-                  : 'bg-white/10 text-white'
-              )}>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1">
-                    {message.fileName && (
-                      <div className="flex items-center gap-2 mb-2 text-sm text-white/80">
-                        <Upload className="h-3 w-3" />
-                        {message.fileName}
-                      </div>
-                    )}
-                    <p className="text-white whitespace-pre-wrap">{message.content}</p>
-                    <p className="text-xs text-white/50 mt-2">
-                      {formatTime(message.timestamp)}
+                <div className="space-y-4">
+                  <div className="android-message-bubble android-message-assistant">
+                    <p className="text-sm">Hallo! Ik ben QRP, je AI-assistent. Waar kan ik je mee helpen?</p>
+                  </div>
+                  <div className="android-message-bubble android-message-user ml-auto">
+                    <p className="text-sm">Kun je me helpen met wiskunde?</p>
+                  </div>
+                  <div className="android-message-bubble android-message-assistant">
+                    <p className="text-sm">
+                      Natuurlijk! Ik help je graag met wiskundige problemen. Wat wil je berekenen?
                     </p>
                   </div>
-                  
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => copyMessage(message.content)}
-                      className="h-6 w-6 p-0 text-white/60 hover:text-white hover:bg-white/20"
-                    >
-                      <Copy className="h-3 w-3" />
-                    </Button>
-                    {message.role === 'assistant' && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => speak(message.content)}
-                        className="h-6 w-6 p-0 text-white/60 hover:text-white hover:bg-white/20"
-                      >
-                        <Volume2 className="h-3 w-3" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-              
-              {message.role === 'user' && (
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-400 to-cyan-400 rounded-full flex items-center justify-center flex-shrink-0">
-                  <User className="h-4 w-4 text-white" />
-                </div>
-              )}
-            </div>
-          ))}
-          
-          {isLoading && (
-            <div className="flex gap-4 animate-fade-in">
-              <div className="w-8 h-8 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center">
-                <Sparkles className="h-4 w-4 text-white animate-pulse" />
-              </div>
-              <div className="max-w-[80%] rounded-2xl px-4 py-3 glass-surface border-white/20 bg-white/10">
-                <div className="flex space-x-1">
-                  <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                  <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                 </div>
               </div>
             </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
+          </div>
+        </section>
 
-        {/* Input Form */}
-        <Card className="glass-surface border-white/20 sticky bottom-4">
-          <CardContent className="p-4">
-            {selectedFile && (
-              <div className="flex items-center gap-2 mb-3 p-2 bg-white/10 rounded-lg">
-                <Upload className="h-4 w-4 text-white/60" />
-                <span className="text-sm text-white/80 flex-1">{selectedFile.name}</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSelectedFile(null)}
-                  className="h-6 w-6 p-0 text-white/60 hover:text-white"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
+        {/* CTA Section */}
+        <section className="text-center space-y-8 py-12">
+          <div className="space-y-4">
+            <h2 className="text-3xl md:text-4xl font-bold">Klaar om te Beginnen?</h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Sluit je aan bij duizenden gebruikers die al profiteren van onze AI-tools
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/auth/register">
+              <Button size="lg" className="android-primary-button text-lg px-8 py-4">
+                <UserPlus className="h-5 w-5 mr-2" />
+                Gratis Account Maken
+              </Button>
+            </Link>
+            <Link href="/auth/login">
+              <Button variant="outline" size="lg" className="android-secondary-button text-lg px-8 py-4 bg-transparent">
+                <LogIn className="h-5 w-5 mr-2" />
+                Al een Account?
+              </Button>
+            </Link>
+          </div>
+        </section>
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t bg-white/50 dark:bg-gray-900/50 backdrop-blur-lg mt-20">
+        <div className="max-w-7xl mx-auto px-4 py-12">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <div className="android-avatar w-8 h-8">
+                  <Sparkles className="h-4 w-4 text-white" />
+                </div>
+                <span className="font-bold text-lg">QRP</span>
               </div>
-            )}
-            
-            <form onSubmit={handleSubmit} className="flex gap-2">
-              <div className="flex-1 relative">
-                <Input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Typ je bericht hier..."
-                  disabled={isLoading}
-                  className="bg-white/10 border-white/20 text-white placeholder:text-white/50 pr-12 focus:ring-primary focus:border-primary"
-                />
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                  className="hidden"
-                  accept="image/*,.pdf,.doc,.docx,.txt"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0 text-white/60 hover:text-white hover:bg-white/20"
-                >
-                  <Upload className="h-4 w-4" />
-                </Button>
+              <p className="text-sm text-muted-foreground">
+                Je vriendelijke AI-assistent platform voor alle dagelijkse taken.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="font-semibold">Product</h4>
+              <div className="space-y-2 text-sm">
+                <Link href="/link" className="block text-muted-foreground hover:text-foreground">
+                  Features
+                </Link>
+                <Link href="/auth/register" className="block text-muted-foreground hover:text-foreground">
+                  Prijzen
+                </Link>
               </div>
-              
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={isListening ? stopListening : startListening}
-                disabled={isLoading}
-                className={cn(
-                  "text-white hover:bg-white/20",
-                  isListening && "bg-red-500/20 text-red-300"
-                )}
-              >
-                {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-              </Button>
-              
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={isSpeaking ? stopSpeaking : () => speak(messages[messages.length - 1]?.content || '')}
-                disabled={isLoading || messages.length === 0 || messages[messages.length - 1]?.role === 'user'}
-                className={cn(
-                  "text-white hover:bg-white/20",
-                  isSpeaking && "bg-green-500/20 text-green-300"
-                )}
-              >
-                {isSpeaking ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-              </Button>
-              
-              <Button
-                type="submit"
-                disabled={isLoading || (!input.trim() && !selectedFile)}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground"
-              >
-                <Send className="h-4 w-4" />
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="font-semibold">Support</h4>
+              <div className="space-y-2 text-sm">
+                <Link href="/link" className="block text-muted-foreground hover:text-foreground">
+                  Help Center
+                </Link>
+                <Link href="/link" className="block text-muted-foreground hover:text-foreground">
+                  Contact
+                </Link>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="font-semibold">Bedrijf</h4>
+              <div className="space-y-2 text-sm">
+                <Link href="/link" className="block text-muted-foreground hover:text-foreground">
+                  Over Ons
+                </Link>
+                <Link href="/link" className="block text-muted-foreground hover:text-foreground">
+                  Privacy
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t mt-8 pt-8 text-center text-sm text-muted-foreground">
+            <p>&copy; 2024 QRP. Alle rechten voorbehouden.</p>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }

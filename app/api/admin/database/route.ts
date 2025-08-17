@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { sql } from '@/lib/db';
 
 export async function POST(request: Request) {
   const { action } = await request.json();
@@ -7,16 +7,13 @@ export async function POST(request: Request) {
   if (action === 'clear_all_data') {
     try {
       // Delete all messages first to satisfy foreign key constraints
-      await prisma.message.deleteMany({});
+      await sql`DELETE FROM "Message";`;
       // Then delete all chats
-      await prisma.chat.deleteMany({});
+      await sql`DELETE FROM "Chat";`;
       // Reset visitor count
-      await prisma.visitorCount.update({
-        where: { id: 1 },
-        data: { count: 0 },
-      });
+      await sql`UPDATE "VisitorCount" SET count = 0 WHERE id = 1;`;
       // Delete all placeholder users
-      await prisma.user.deleteMany({});
+      await sql`DELETE FROM "User";`;
 
       return NextResponse.json({ success: true, message: 'All data cleared successfully.' });
     } catch (error: any) {
@@ -25,18 +22,18 @@ export async function POST(request: Request) {
     }
   } else if (action === 'get_status') {
     try {
-      const chatCount = await prisma.chat.count();
-      const messageCount = await prisma.message.count();
-      const visitorCount = await prisma.visitorCount.findUnique({ where: { id: 1 } });
-      const userCount = await prisma.user.count();
+      const chatCountResult = await sql`SELECT COUNT(*) FROM "Chat";`;
+      const messageCountResult = await sql`SELECT COUNT(*) FROM "Message";`;
+      const visitorCountResult = await sql`SELECT count FROM "VisitorCount" WHERE id = 1;`;
+      const userCountResult = await sql`SELECT COUNT(*) FROM "User";`;
 
       return NextResponse.json({
         success: true,
         status: {
-          chatCount,
-          messageCount,
-          visitorCount: visitorCount?.count || 0,
-          userCount,
+          chatCount: Number(chatCountResult[0].count),
+          messageCount: Number(messageCountResult[0].count),
+          visitorCount: Number(visitorCountResult[0]?.count || 0),
+          userCount: Number(userCountResult[0].count),
         },
       });
     } catch (error: any) {

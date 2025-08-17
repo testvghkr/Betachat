@@ -3,12 +3,12 @@
 
 -- Create SecurityQuestion table if it doesn't exist
 CREATE TABLE IF NOT EXISTS "SecurityQuestion" (
-    id TEXT PRIMARY KEY NOT NULL,
+    id TEXT PRIMARY KEY NOT NULL DEFAULT gen_random_uuid()::text,
     user_id TEXT NOT NULL,
     question TEXT NOT NULL,
     answer TEXT NOT NULL,
     created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP(3) NOT NULL,
+    updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE
 );
 
@@ -17,7 +17,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS "SecurityQuestion_userId_active_idx" ON "Secur
 
 -- Maak index voor betere performance
 CREATE INDEX IF NOT EXISTS "SecurityQuestion_userId_idx" ON "SecurityQuestion"("user_id");
-CREATE INDEX IF NOT EXISTS "SecurityQuestion_createdAt_idx" ON "SecurityQuestion"("created_at");
+CREATE INDEX IF NOT EXISTS "SecurityQuestion_created_at_idx" ON "SecurityQuestion"("created_at");
 
 -- Verwijder de oude kolommen uit de User tabel (als ze bestaan)
 DO $$

@@ -13,7 +13,8 @@ export async function GET() {
 
 export async function POST() {
   try {
-    const newCount = await incrementVisitorCount();
+    await incrementVisitorCount();
+    const newCount = await getVisitorCount(); // Fetch updated count
     return NextResponse.json({ newCount });
   } catch (error: any) {
     console.error('Error incrementing visitor count:', error);
